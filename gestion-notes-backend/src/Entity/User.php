@@ -113,6 +113,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             'ROLE_ADMIN',
             'ROLE_ENSEIGNANT',
             'ROLE_ETUDIANT',
+            'ROLE_RESPONSABLE_PEDAGOGIQUE',
+            'ROLE_CHEF_DEPARTEMENT',
         ];
 
         foreach ($roles as $role) {

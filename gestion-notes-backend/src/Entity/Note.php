@@ -79,6 +79,10 @@ class Note
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?User $saisiePar = null;
 
+    #[ORM\ManyToOne(targetEntity: Session::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Session $session = null;
+
     // Utilisateur qui a modifié la note
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
@@ -346,6 +350,9 @@ class Note
         $this->saisiePar = $saisiePar;
         return $this;
     }
+
+    public function getSession(): ?Session { return $this->session; }
+    public function setSession(?Session $session): static { $this->session = $session; return $this; }
 
     public function getModifiePar(): ?User
     {
