@@ -37,6 +37,7 @@ security:
 
         # Routes Super Admin uniquement
         - { path: ^/api/admin/users, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/audit-logs, roles: ROLE_ADMIN }
 
         # Routes Admin et Super Admin
         - { path: ^/api/admin, roles: ROLE_ADMIN }
@@ -54,3 +55,12 @@ security:
 
         # Routes authentifiées (lecture pour tous)
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+        # Departements
+        - { path: ^/api/departements, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/departements, roles: IS_AUTHENTICATED_FULLY, methods: [GET] }
+
+         # Sessions
+        - { path: ^/api/sessions, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/sessions, roles: IS_AUTHENTICATED_FULLY, methods: [GET] }
+        # Super Admin
+        - { path: ^/api/admin/users, roles: ROLE_SUPER_ADMIN }

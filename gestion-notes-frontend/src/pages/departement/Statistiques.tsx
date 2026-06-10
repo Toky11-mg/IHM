@@ -1,0 +1,3 @@
+export default function StatistiquesDepartementPage() {
+  return <div><h1 className="text-2xl font-bold text-gray-800">Statistiques Département</h1></div>
+}
