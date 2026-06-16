@@ -103,7 +103,7 @@ function AnneeCard({ a, onEdit, onDelete, onActivate, onArchive, loadingId }: {
   a: Annee; onEdit: () => void; onDelete: () => void
   onActivate: () => void; onArchive: () => void; loadingId: number | null
 }) {
-  const st = STATUT_MAP[a.statut]
+  const st = STATUT_MAP[a.statut] ?? { label: a.statut, bg: '#e5e7eb', color: '#374151' }
   const isActive  = a.statut === 'active'
   const isArchive = a.statut === 'archivee'
   const busy      = loadingId === a.id
