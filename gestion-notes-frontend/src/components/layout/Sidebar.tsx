@@ -1,78 +1,118 @@
-import { NavLink } from 'react-router-dom'
+// src/components/layout/Sidebar.tsx
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import {
-  LayoutDashboard, Users, GraduationCap,
-  BookOpen, FileText, BarChart3,
-  ClipboardList, Settings, School
-} from 'lucide-react'
 
-const menuAdmin = [
-  { label: 'Tableau de bord', icon: LayoutDashboard, path: '/admin/dashboard' },
-  { label: 'Étudiants',       icon: GraduationCap,   path: '/admin/etudiants' },
-  { label: 'Enseignants',     icon: Users,            path: '/admin/enseignants' },
-  { label: 'Filières',        icon: School,           path: '/admin/filieres' },
-  { label: 'Matières',        icon: BookOpen,         path: '/admin/matieres' },
-  { label: 'Délibérations',   icon: ClipboardList,    path: '/admin/deliberations' },
-  { label: 'Statistiques',    icon: BarChart3,        path: '/admin/statistiques' },
-  { label: 'Audit',           icon: FileText,         path: '/admin/audit' },
+interface NavItem {
+  label: string
+  path: string
+  icon: string
+}
+
+const NAV_ADMIN: NavItem[] = [
+  { label: 'Dashboard',      path: '/admin/dashboard',     icon: '▦'  },
+  { label: 'Matières',       path: '/admin/matieres',      icon: '📚' },
+  { label: 'Filières',       path: '/admin/filieres',      icon: '🏫' },
+  { label: 'Étudiants',      path: '/admin/etudiants',     icon: '👥' },
+  { label: 'Enseignants',    path: '/admin/enseignants',   icon: '👨‍🏫' },
+  { label: 'Années',         path: '/admin/annees',        icon: '📅' },
+  { label: 'Délibérations',  path: '/admin/deliberations', icon: '📋' },
+  { label: 'Statistiques',   path: '/admin/statistiques',  icon: '📊' },
+  { label: 'Audit',          path: '/admin/audit',         icon: '🔍' },
 ]
 
-const menuEnseignant = [
-  { label: 'Tableau de bord', icon: LayoutDashboard, path: '/enseignant/dashboard' },
-  { label: 'Saisie notes',    icon: FileText,        path: '/enseignant/notes' },
+const NAV_ENSEIGNANT: NavItem[] = [
+  { label: 'Dashboard',      path: '/enseignant/dashboard',    icon: '▦'  },
+  { label: 'Mes matières',   path: '/enseignant/mes-matieres', icon: '📚' },
+  { label: 'Saisie notes',   path: '/enseignant/saisie-notes', icon: '✎'  },
+  { label: 'Historique',     path: '/enseignant/historique',   icon: '🕐' },
 ]
 
-const menuEtudiant = [
-  { label: 'Tableau de bord', icon: LayoutDashboard, path: '/etudiant/dashboard' },
-  { label: 'Mes notes',       icon: FileText,        path: '/etudiant/notes' },
+const NAV_ETUDIANT: NavItem[] = [
+  { label: 'Dashboard',      path: '/etudiant/dashboard',        icon: '▦'  },
+  { label: 'Mes notes',      path: '/etudiant/mes-notes',        icon: '📝' },
+  { label: 'Mes relevés',    path: '/etudiant/mes-releves',      icon: '📄' },
+  { label: 'Réclamations',   path: '/etudiant/mes-reclamations', icon: '📩' },
 ]
+
+const ENI = { dark: '#064e3b', mid: '#065f46', light: '#047857' }
 
 export default function Sidebar() {
-  const { hasRole } = useAuth()
+  const { user, logout, hasRole } = useAuth()
+  const navigate = useNavigate()
 
-  const menu = hasRole('ROLE_ADMIN')
-    ? menuAdmin
-    : hasRole('ROLE_ENSEIGNANT')
-    ? menuEnseignant
-    : menuEtudiant
+  const navItems =
+    hasRole('ROLE_ADMIN') || hasRole('ROLE_SUPER_ADMIN') ? NAV_ADMIN :
+    hasRole('ROLE_ENSEIGNANT') ? NAV_ENSEIGNANT :
+    hasRole('ROLE_ETUDIANT')   ? NAV_ETUDIANT :
+    []
+
+  const roleLabel =
+    hasRole('ROLE_SUPER_ADMIN') ? 'Super Admin' :
+    hasRole('ROLE_ADMIN')       ? 'Administrateur' :
+    hasRole('ROLE_ENSEIGNANT')  ? 'Enseignant' :
+    hasRole('ROLE_ETUDIANT')    ? 'Étudiant' :
+    'Utilisateur'
+
+  const handleLogout = () => { logout(); navigate('/login') }
 
   return (
-    <aside className="w-64 bg-blue-900 text-white flex flex-col">
+    <aside style={{ width: '240px', minHeight: '100vh', backgroundColor: ENI.dark, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+
       {/* Logo */}
-      <div className="p-6 border-b border-blue-800">
-        <div className="flex items-center gap-3">
-          <School className="w-8 h-8 text-blue-300" />
-          <div>
-            <h1 className="font-bold text-sm">Gestion Notes</h1>
-            <p className="text-xs text-blue-400">Université</p>
-          </div>
+      <div style={{ padding: '1.25rem 1rem', borderBottom: '0.5px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ fontSize: '20px', fontWeight: 700, color: '#fff', letterSpacing: '0.02em' }}>
+          ENI Notes
+        </div>
+        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginTop: '2px' }}>
+          Système de gestion des notes
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
-        {menu.map(item => (
+      {/* Nav */}
+      <nav style={{ flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        {navItems.map(item => (
           <NavLink
             key={item.path}
             to={item.path}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg
-               text-sm transition-colors ${
-                isActive
-                  ? 'bg-blue-700 text-white'
-                  : 'text-blue-200 hover:bg-blue-800 hover:text-white'
-              }`
-            }
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '9px 12px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: isActive ? 600 : 400,
+              color: isActive ? '#fff' : 'rgba(255,255,255,0.65)',
+              backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
+              textDecoration: 'none',
+              transition: 'all .15s',
+            })}
           >
-            <item.icon className="w-5 h-5" />
+            <span style={{ fontSize: '15px' }}>{item.icon}</span>
             {item.label}
           </NavLink>
         ))}
       </nav>
 
-      {/* Version */}
-      <div className="p-4 border-t border-blue-800">
-        <p className="text-xs text-blue-400 text-center">v1.0.0 — IHM 2025</p>
+      {/* User */}
+      <div style={{ padding: '1rem', borderTop: '0.5px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <div style={{ width: '34px', height: '34px', borderRadius: '50%', backgroundColor: ENI.light, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: '13px', flexShrink: 0 }}>
+            {user?.prenom?.[0]}{user?.nom?.[0]}
+          </div>
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{ fontSize: '13px', fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.prenom} {user?.nom}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>{roleLabel}</div>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          style={{ width: '100%', padding: '8px', borderRadius: '8px', border: 'none', backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+        >
+          🚪 Déconnexion
+        </button>
       </div>
     </aside>
   )

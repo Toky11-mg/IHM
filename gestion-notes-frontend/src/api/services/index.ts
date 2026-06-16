@@ -1,0 +1,13 @@
+// src/api/services/index.ts
+export * from './matiereService'
+export * from './filiereService'
+export * from './anneeService'
+export * from './niveauService'
+export * from './semestreService'
+export * from './enseignantService'
+export * from './etudiantService'
+export * from './noteService'
+export * from './deliberationService'
+export * from './reclamationService'
+export * from './statistiqueService'
+export * from './auditService'

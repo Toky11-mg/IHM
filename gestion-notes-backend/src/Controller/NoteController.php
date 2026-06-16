@@ -31,7 +31,7 @@ class NoteController extends AbstractController
     // GET /api/notes
     // =====================
     #[Route('', name: 'list', methods: ['GET'])]
-    #[IsGranted('ROLE_ENSEIGNANT')]
+    #[IsGranted('ROLE_USER')]
     public function list(Request $request): JsonResponse
     {
         $criteria = [];

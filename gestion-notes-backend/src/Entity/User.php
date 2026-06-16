@@ -27,7 +27,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\Length(max: 180, maxMessage: 'L\'email ne peut pas dépasser 180 caractères.')]
     private ?string $email = null;
 
-    #[ORM\Column]
+    #[ORM\Column(type: 'json')]
     private array $roles = [];
 
     #[ORM\Column]
@@ -192,6 +192,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->loginAttempts >= 5;
     }
 
+    #[\Deprecated]
     public function eraseCredentials(): void
     {
         // Effacer données sensibles temporaires si besoin

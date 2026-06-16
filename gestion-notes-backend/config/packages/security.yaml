@@ -4,6 +4,12 @@ security:
             algorithm: bcrypt
             cost: 12
 
+    role_hierarchy:
+        ROLE_SUPER_ADMIN: [ROLE_ADMIN]
+        ROLE_ADMIN:       [ROLE_ENSEIGNANT, ROLE_ETUDIANT, ROLE_USER]
+        ROLE_ENSEIGNANT:  [ROLE_USER]
+        ROLE_ETUDIANT:    [ROLE_USER]
+
     providers:
         app_user_provider:
             entity:
@@ -16,8 +22,9 @@ security:
             security: false
 
         login:
-            pattern: ^/api/auth/login
+            pattern: ^/api/auth/login$
             stateless: true
+            provider: app_user_provider
             json_login:
                 check_path: /api/auth/login
                 username_path: email
@@ -28,39 +35,26 @@ security:
         api:
             pattern: ^/api
             stateless: true
+            provider: app_user_provider
             jwt: ~
 
     access_control:
-        # Routes publiques
-        - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
-        - { path: ^/api/auth/register, roles: PUBLIC_ACCESS }
-
-        # Routes Super Admin uniquement
-        - { path: ^/api/admin/users, roles: ROLE_SUPER_ADMIN }
-        - { path: ^/api/audit-logs, roles: ROLE_ADMIN }
-
-        # Routes Admin et Super Admin
-        - { path: ^/api/admin, roles: ROLE_ADMIN }
-        - { path: ^/api/filieres, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
-        - { path: ^/api/niveaux, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
-        - { path: ^/api/semestres, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
-        - { path: ^/api/annees, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
-        - { path: ^/api/matieres, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
-        - { path: ^/api/enseignants, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
-        - { path: ^/api/etudiants, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
-        - { path: ^/api/deliberations, roles: ROLE_ADMIN }
-
-        # Routes Enseignant
-        - { path: ^/api/notes, roles: ROLE_ENSEIGNANT, methods: [POST, PUT] }
-
-        # Routes authentifiées (lecture pour tous)
-        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
-        # Departements
-        - { path: ^/api/departements, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
-        - { path: ^/api/departements, roles: IS_AUTHENTICATED_FULLY, methods: [GET] }
-
-         # Sessions
-        - { path: ^/api/sessions, roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
-        - { path: ^/api/sessions, roles: IS_AUTHENTICATED_FULLY, methods: [GET] }
-        # Super Admin
-        - { path: ^/api/admin/users, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api,                roles: public_access, methods: [OPTIONS] }
+        - { path: ^/api/auth/login$,    roles: PUBLIC_ACCESS }
+        - { path: ^/api/auth/register$, roles: PUBLIC_ACCESS }
+        - { path: ^/api/audit-logs,     roles: ROLE_ADMIN }
+        - { path: ^/api/admin/users,    roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin,          roles: ROLE_ADMIN }
+        - { path: ^/api/filieres,       roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/niveaux,        roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/semestres,      roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/annees,         roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/matieres,       roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/enseignants,    roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/etudiants,      roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/deliberations,  roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/departements,   roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/sessions,       roles: ROLE_ADMIN, methods: [POST, PUT, DELETE] }
+        - { path: ^/api/statistiques,   roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api/notes,          roles: ROLE_ENSEIGNANT, methods: [POST, PUT, DELETE] }
+        - { path: ^/api,                roles: IS_AUTHENTICATED_FULLY }

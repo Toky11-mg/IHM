@@ -1,85 +1,88 @@
+// src/routes/AppRoutes.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+
+// Layout
 import Layout from '../components/layout/Layout'
 
 // Auth
-import LoginPage from '../pages/Login'
+import Login    from '../pages/Login'
 import NotFound from '../pages/NotFound'
 
 // Admin
-import DashboardAdmin from '../pages/admin/Dashboard'
-import EtudiantsPage from '../pages/admin/Etudiants'
-import EnseignantsPage from '../pages/admin/Enseignants'
-import FilieresPage from '../pages/admin/Filieres'
-import MatieresPage from '../pages/admin/Matieres'
-import AnneesPage from '../pages/admin/Annees'
-import DeliberationsAdminPage from '../pages/admin/Deliberations'
-import StatistiquesAdminPage from '../pages/admin/Statistiques'
-import AuditPage from '../pages/admin/Audit'
+import AdminDashboard from '../pages/admin/Dashboard'
+import Matieres       from '../pages/admin/Matieres'
+import Annees         from '../pages/admin/Annees'
+import Filieres       from '../pages/admin/Filieres'
+import Etudiants      from '../pages/admin/Etudiants'
+import Enseignants    from '../pages/admin/Enseignants'
+import Deliberations  from '../pages/admin/Deliberations'
+import Statistiques   from '../pages/admin/Statistiques'
+import Audit          from '../pages/admin/Audit'
 
 // Enseignant
-import DashboardEnseignant from '../pages/enseignant/Dashboard'
-import MesMatieresPage from '../pages/enseignant/MesMatieres'
-import SaisieNotesPage from '../pages/enseignant/SaisieNotes'
-import HistoriquePage from '../pages/enseignant/Historique'
+import EnseignantDashboard from '../pages/enseignant/Dashboard'
+import MesMatieres         from '../pages/enseignant/MesMatieres'
+import SaisieNotes         from '../pages/enseignant/SaisieNotes'
+import Historique          from '../pages/enseignant/Historique'
 
-// Etudiant
-import DashboardEtudiant from '../pages/etudiant/Dashboard'
-import MesNotesPage from '../pages/etudiant/MesNotes'
-import MesRelevesPage from '../pages/etudiant/MesReleves'
-import MesReclamationsPage from '../pages/etudiant/MesReclamations'
+// Étudiant
+import EtudiantDashboard from '../pages/etudiant/Dashboard'
+import MesNotes          from '../pages/etudiant/MesNotes'
+import MesReleves        from '../pages/etudiant/MesReleves'
+import MesReclamations   from '../pages/etudiant/MesReclamations'
 
-// Responsable
-import DashboardResponsable from '../pages/responsable/Dashboard'
-import DeliberationsResponsablePage from '../pages/responsable/Deliberations'
-import StatistiquesResponsablePage from '../pages/responsable/Statistiques'
-import ClassementsPage from '../pages/responsable/Classements'
+// ─── ProtectedRoute ───────────────────────────────────────────────────────────
 
-// Département
-import DashboardDepartement from '../pages/departement/Dashboard'
-import ResultatsPage from '../pages/departement/Resultats'
-import StatistiquesDepartementPage from '../pages/departement/Statistiques'
-
-// ProtectedRoute
-const ProtectedRoute = ({
-  children,
-  roles,
-}: {
+interface ProtectedRouteProps {
   children: React.ReactNode
-  roles: string[]
-}) => {
-  const { isAuthenticated, hasRole } = useAuth()
+  roles?: string[]
+}
 
-  if (!isAuthenticated()) return <Navigate to="/login" replace />
-  if (roles.length > 0 && !roles.some(r => hasRole(r as never)))
+function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
+  const { isAuthenticated, hasRole, isLoading } = useAuth()
+
+  // Attendre la restauration de session avant de rediriger
+  if (isLoading) return null
+
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+
+  if (roles && roles.length > 0 && !roles.some(r => hasRole(r))) {
     return <Navigate to="/login" replace />
+  }
 
   return <>{children}</>
 }
 
-export default function AppRouter() {
+// ─── Routes ───────────────────────────────────────────────────────────────────
+
+const ADMIN_ROLES = ['ROLE_ADMIN', 'ROLE_SUPER_ADMIN']
+
+export default function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+
         {/* Public */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/"      element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
 
         {/* Admin */}
         <Route path="/admin" element={
-          <ProtectedRoute roles={['ROLE_ADMIN', 'ROLE_SUPER_ADMIN']}>
+          <ProtectedRoute roles={ADMIN_ROLES}>
             <Layout />
           </ProtectedRoute>
         }>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardAdmin />} />
-          <Route path="etudiants" element={<EtudiantsPage />} />
-          <Route path="enseignants" element={<EnseignantsPage />} />
-          <Route path="filieres" element={<FilieresPage />} />
-          <Route path="matieres" element={<MatieresPage />} />
-          <Route path="annees" element={<AnneesPage />} />
-          <Route path="deliberations" element={<DeliberationsAdminPage />} />
-          <Route path="statistiques" element={<StatistiquesAdminPage />} />
-          <Route path="audit" element={<AuditPage />} />
+          <Route index                element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard"     element={<AdminDashboard />} />
+          <Route path="matieres"      element={<Matieres />} />
+          <Route path="annees"        element={<Annees />} />
+          <Route path="filieres"      element={<Filieres />} />
+          <Route path="etudiants"     element={<Etudiants />} />
+          <Route path="enseignants"   element={<Enseignants />} />
+          <Route path="deliberations" element={<Deliberations />} />
+          <Route path="statistiques"  element={<Statistiques />} />
+          <Route path="audit"         element={<Audit />} />
         </Route>
 
         {/* Enseignant */}
@@ -88,54 +91,29 @@ export default function AppRouter() {
             <Layout />
           </ProtectedRoute>
         }>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardEnseignant />} />
-          <Route path="matieres" element={<MesMatieresPage />} />
-          <Route path="notes" element={<SaisieNotesPage />} />
-          <Route path="historique" element={<HistoriquePage />} />
+          <Route index                element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard"     element={<EnseignantDashboard />} />
+          <Route path="mes-matieres"  element={<MesMatieres />} />
+          <Route path="saisie-notes"  element={<SaisieNotes />} />
+          <Route path="historique"    element={<Historique />} />
         </Route>
 
-        {/* Etudiant */}
+        {/* Étudiant */}
         <Route path="/etudiant" element={
           <ProtectedRoute roles={['ROLE_ETUDIANT']}>
             <Layout />
           </ProtectedRoute>
         }>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardEtudiant />} />
-          <Route path="notes" element={<MesNotesPage />} />
-          <Route path="releves" element={<MesRelevesPage />} />
-          <Route path="reclamations" element={<MesReclamationsPage />} />
+          <Route index                   element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard"        element={<EtudiantDashboard />} />
+          <Route path="mes-notes"        element={<MesNotes />} />
+          <Route path="mes-releves"      element={<MesReleves />} />
+          <Route path="mes-reclamations" element={<MesReclamations />} />
         </Route>
 
-        {/* Responsable */}
-        <Route path="/responsable" element={
-          <ProtectedRoute roles={['ROLE_RESPONSABLE_PEDAGOGIQUE']}>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardResponsable />} />
-          <Route path="deliberations" element={<DeliberationsResponsablePage />} />
-          <Route path="statistiques" element={<StatistiquesResponsablePage />} />
-          <Route path="classements" element={<ClassementsPage />} />
-        </Route>
-
-        {/* Département */}
-        <Route path="/departement" element={
-          <ProtectedRoute roles={['ROLE_CHEF_DEPARTEMENT']}>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardDepartement />} />
-          <Route path="resultats" element={<ResultatsPage />} />
-          <Route path="statistiques" element={<StatistiquesDepartementPage />} />
-        </Route>
-
-        {/* Redirections */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* 404 */}
         <Route path="*" element={<NotFound />} />
+
       </Routes>
     </BrowserRouter>
   )

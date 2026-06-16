@@ -28,8 +28,8 @@ class MatiereController extends AbstractController
     // GET /api/matieres
     // =====================
     #[Route('', name: 'list', methods: ['GET'])]
-    #[IsGranted('ROLE_ENSEIGNANT')]
-    public function list(Request $request): JsonResponse
+    #[IsGranted('ROLE_USER')]
+public function list(Request $request): JsonResponse
     {
         $criteria = [];
         if ($request->query->get('semestreId')) {
@@ -62,7 +62,7 @@ class MatiereController extends AbstractController
     // GET /api/matieres/{id}
     // =====================
     #[Route('/{id}', name: 'show', methods: ['GET'])]
-    #[IsGranted('ROLE_ENSEIGNANT')]
+    #[IsGranted('ROLE_USER')]
     public function show(int $id): JsonResponse
     {
         $matiere = $this->repo->find($id);

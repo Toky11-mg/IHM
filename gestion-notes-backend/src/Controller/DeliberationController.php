@@ -30,7 +30,7 @@ class DeliberationController extends AbstractController
     // GET /api/deliberations
     // =====================
     #[Route('', name: 'list', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function list(Request $request): JsonResponse
     {
         $criteria = [];
@@ -89,7 +89,7 @@ class DeliberationController extends AbstractController
     // GET /api/deliberations/{id}
     // =====================
     #[Route('/{id}', name: 'show', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function show(string $id): JsonResponse
     {
         $deliberation = $this->repo->find($id);

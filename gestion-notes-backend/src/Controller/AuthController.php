@@ -13,7 +13,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
-
+use App\Service\AuditLogService;
 #[Route('/api/auth', name: 'api_auth_')]
 class AuthController extends AbstractController
 {
@@ -22,6 +22,7 @@ class AuthController extends AbstractController
         private UserPasswordHasherInterface $hasher,
         private ValidatorInterface $validator,
         private JWTTokenManagerInterface $jwtManager,
+        private AuditLogService $auditLog,
         private UserRepository $userRepository,
     ) {}
 
@@ -97,6 +98,19 @@ class AuthController extends AbstractController
 
         $this->em->persist($user);
         $this->em->flush();
+            try {
+                 $this->auditLog->log(
+                action: 'USER_INSCRIT',
+                entite: 'User',
+                entiteId: $user->getId(),
+                nouvelleValeur: ['email' => $user->getEmail(), 'roles' => $user->getRoles()],
+                 request: $request
+                            );
+                            } catch (\Exception $e) {
+                                // Log l'erreur mais ne bloque pas l'inscription
+                                error_log('Erreur lors de l\'audit log d\'inscription : ' . $e->getMessage());
+                                }
+
 
         $token = $this->jwtManager->create($user);
 
