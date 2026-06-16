@@ -5,6 +5,12 @@ import { filiereService, type Filiere } from '../../api/services/filiereService'
 import { niveauService, type Niveau } from '../../api/services/niveauService'
 import { semestreService, type Semestre } from '../../api/services/semestreService'
 import { anneeService, type Annee } from '../../api/services/anneeService'
+import { table } from '../../design-system/styles'
+import { filters } from '../../design-system/styles'
+import { feedback } from '../../design-system/styles'
+import { modal } from '../../design-system/styles'
+import { Spinner } from '../../design-system/components'
+import { EmptyState } from '../../design-system/components'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

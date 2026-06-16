@@ -6,6 +6,7 @@ import { statistiqueService, type StatGlobale } from '../../api/services/statist
 import { deliberationService, type Deliberation } from '../../api/services/deliberationService'
 import { auditService, type AuditLog } from '../../api/services/auditService'
 import { anneeService, type Annee } from '../../api/services/anneeService'
+ 
 
 const ENI = { dark: '#064e3b', mid: '#065f46', light: '#047857' }
 
