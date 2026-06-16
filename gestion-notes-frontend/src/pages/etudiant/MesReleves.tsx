@@ -1,8 +1,7 @@
 // src/pages/etudiant/MesReleves.tsx
 import { useState, useEffect, useCallback } from 'react'
 import { etudiantService, type Etudiant } from '../../api/services/etudiantService'
-
-// ─── Types locaux ─────────────────────────────────────────────────────────────
+import { storage } from '../../services/storage'
 
 interface Releve {
   id: number
@@ -99,10 +98,33 @@ export default function MesReleves() {
     showFlash('Demande envoyée. Votre relevé sera disponible sous 24h.')
   }
 
-  const handleDownload = (r: Releve) => {
-    // TODO : window.open(`/api/releves/${r.id}/download`)
-    alert(`Téléchargement de "${r.libelle}" — disponible après connexion API.`)
+const handleDownload = async () => {
+  const token = storage.getToken();
+  console.log(token);
+  const response = await fetch(
+    "http://localhost:8000/api/notes/me/pdf",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`, 
+      },
+    }
+  );
+
+  if (!response.ok) {
+    alert("Erreur lors du téléchargement");
+    return;
   }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "releve_notes.pdf";
+  a.click();
+
+  window.URL.revokeObjectURL(url);
+};
 
   const annees   = [...new Set(releves.map(r => r.annee))].sort().reverse()
   const filtered = releves.filter(r => !filterAnnee || r.annee === filterAnnee)
@@ -188,7 +210,7 @@ export default function MesReleves() {
                     <td style={S.td}><span style={S.badge(st.bg, st.color)}>{st.label}</span></td>
                     <td style={{ ...S.td, textAlign: 'right' }}>
                       {r.statut !== 'en_cours' ? (
-                        <button style={S.btnSm(ENI.light, '#fff')} onClick={() => handleDownload(r)}>
+                        <button style={S.btnSm(ENI.light, '#fff')} onClick={() => handleDownload()}>
                           ⬇ Télécharger
                         </button>
                       ) : (
