@@ -6,14 +6,21 @@ import { niveauService, type Niveau } from '../../api/services/niveauService'
 import { semestreService, type Semestre } from '../../api/services/semestreService'
 import { enseignantService, type Enseignant } from '../../api/services/enseignantService'
 
+// ─── Types form ───────────────────────────────────────────────────────────────
+
 interface MatiereForm {
-  code: string; nom: string; coefficient: string
-  filiereId: string; niveauId: string; semestreId: string; enseignantId: string
+  code: string
+  nom: string
+  coefficient: string
+  filiereId: string
+  niveauId: string
+  semestreId: string
+  enseignantId: string
 }
 
 const FORM_INIT: MatiereForm = {
-  code: '', nom: '', coefficient: '1',
-  filiereId: '', niveauId: '', semestreId: '', enseignantId: '',
+  code: '', nom: '', credit: '3', type: 'cours', coefficient: '1',
+  semestreId: '', enseignantId: '',
 }
 
 const ENI = { dark: '#064e3b', mid: '#065f46', light: '#047857' }
@@ -53,12 +60,20 @@ const S = {
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
 interface ModalProps {
-  form: MatiereForm; editId: number | null; error: string; loading: boolean
-  filieres: Filiere[]; niveaux: Niveau[]; semestres: Semestre[]; enseignants: Enseignant[]
-  onChange: (f: MatiereForm) => void; onSave: () => void; onClose: () => void
+  form: MatiereForm
+  editId: number | null
+  error: string
+  loading: boolean
+  filieres: Filiere[]
+  niveaux: Niveau[]
+  semestres: Semestre[]
+  enseignants: Enseignant[]
+  onChange: (f: MatiereForm) => void
+  onSave: () => void
+  onClose: () => void
 }
 
-function Modal({ form, editId, error, loading, filieres, niveaux, semestres, enseignants, onChange, onSave, onClose }: ModalProps) {
+function Modal({ form, editId, error, loading, semestres, enseignants, onChange, onSave, onClose }: ModalProps) {
   const set = (k: keyof MatiereForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       onChange({ ...form, [k]: e.target.value })
@@ -118,21 +133,16 @@ function Modal({ form, editId, error, loading, filieres, niveaux, semestres, ens
         <div style={S.formRow}>
           <div style={S.formGroup}>
             <label style={S.label}>Filière</label>
-            <select style={S.formInput} value={form.filiereId} onChange={handleFiliereChange}>
+            <select style={S.formInput} value={form.filiereId} onChange={set('filiereId')}>
               <option value="">— Choisir —</option>
               {filieres.map(f => <option key={f.id} value={f.id}>{f.code} — {f.nom}</option>)}
             </select>
           </div>
           <div style={S.formGroup}>
             <label style={S.label}>Niveau</label>
-            <select
-              style={{ ...S.formInput, opacity: !form.filiereId ? 0.6 : 1 }}
-              value={form.niveauId}
-              onChange={handleNiveauChange}
-              disabled={!form.filiereId}
-            >
+            <select style={S.formInput} value={form.niveauId} onChange={set('niveauId')}>
               <option value="">— Choisir —</option>
-              {niveauxFiltres.map(n => <option key={n.id} value={n.id}>{n.nom}</option>)}
+              {niveaux.map(n => <option key={n.id} value={n.id}>{n.nom}</option>)}
             </select>
             {!form.filiereId && <span style={S.hint}>Sélectionnez d'abord une filière</span>}
           </div>
@@ -141,16 +151,10 @@ function Modal({ form, editId, error, loading, filieres, niveaux, semestres, ens
         <div style={S.formRow}>
           <div style={S.formGroup}>
             <label style={S.label}>Semestre</label>
-            <select
-              style={{ ...S.formInput, opacity: !form.niveauId ? 0.6 : 1 }}
-              value={form.semestreId}
-              onChange={set('semestreId')}
-              disabled={!form.niveauId}
-            >
+            <select style={S.formInput} value={form.semestreId} onChange={set('semestreId')}>
               <option value="">— Choisir —</option>
-              {semestresFiltres.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
+              {semestres.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
             </select>
-            {!form.niveauId && <span style={S.hint}>Sélectionnez d'abord un niveau</span>}
           </div>
           <div style={S.formGroup}>
             <label style={S.label}>Enseignant responsable</label>
@@ -242,48 +246,15 @@ export default function Matieres() {
 
   useEffect(() => { loadAll() }, [loadAll])
 
-  // ─── Niveaux et semestres dépendants des filtres sélectionnés ────────────────
-
-  const niveauxDuFiltre = useMemo(() =>
-    filterFil
-      ? niveaux.filter(n => String(n.filiere?.id) === filterFil)
-      : niveaux,
-    [niveaux, filterFil]
-  )
-
-  const semestresDuFiltre = useMemo(() =>
-    filterNiv
-      ? semestres.filter(s => String(s.niveau?.id) === filterNiv)
-      : filterFil
-        // Si filière choisie mais pas encore de niveau → semestres de cette filière
-        ? semestres.filter(s => String(s.niveau?.filiere?.id) === filterFil)
-        : semestres,
-    [semestres, filterFil, filterNiv]
-  )
-
-  // ─── Filtrage des matières ────────────────────────────────────────────────────
+  // ─── Filtrage ────────────────────────────────────────────────────────────────
 
   const filtered = useMemo(() => matieres.filter(m => {
-    const q      = search.toLowerCase()
-    const matchQ = !q       || m.nom.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
-    const matchF = !filterFil || String(m.semestre?.niveau?.filiere?.id) === filterFil
-    const matchN = !filterNiv || String(m.semestre?.niveau?.id)          === filterNiv
-    const matchS = !filterSem || String(m.semestre?.id)                  === filterSem
-    return matchQ && matchF && matchN && matchS
-  }), [matieres, search, filterFil, filterNiv, filterSem])
-
-  // ─── Réinitialiser les filtres dépendants ─────────────────────────────────────
-
-  const handleFilterFil = (val: string) => {
-    setFilterFil(val)
-    setFilterNiv('')   // reset niveau
-    setFilterSem('')   // reset semestre
-  }
-
-  const handleFilterNiv = (val: string) => {
-    setFilterNiv(val)
-    setFilterSem('')   // reset semestre
-  }
+    const q = search.toLowerCase()
+    const matchQ = !q || m.nom.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
+    const matchF = !filterFil || String(m.filiere?.id) === filterFil
+    const matchS = !filterSem || String(m.semestre?.id) === filterSem
+    return matchQ && matchF && matchS
+  }), [matieres, search, filterFil, filterSem])
 
   // ─── Modal ────────────────────────────────────────────────────────────────────
 
@@ -293,9 +264,11 @@ export default function Matieres() {
     setForm({
       code:         m.code,
       nom:          m.nom,
+      credit:       String(m.credit ?? 3),
+      type:         m.type ?? 'cours',
       coefficient:  String(m.coefficient),
-      filiereId:    String(m.semestre?.niveau?.filiere?.id ?? ''),
-      niveauId:     String(m.semestre?.niveau?.id ?? ''),
+      filiereId:    String(m.filiere?.id ?? ''),
+      niveauId:     String(m.niveau?.id ?? ''),
       semestreId:   String(m.semestre?.id ?? ''),
       enseignantId: String(m.enseignant?.id ?? ''),
     })
@@ -308,18 +281,23 @@ export default function Matieres() {
     if (!form.code.trim() || !form.nom.trim()) {
       setFormError('Code et nom sont obligatoires.'); return
     }
+    if (!form.semestreId) {
+      setFormError('Le semestre est obligatoire.'); return
+    }
     const coef = parseFloat(form.coefficient)
-    if (isNaN(coef) || coef <= 0) { setFormError('Coefficient invalide.'); return }
+    if (isNaN(coef) || coef <= 0) {
+      setFormError('Coefficient invalide.'); return
+    }
 
     setSaving(true); setFormError('')
     try {
       const payload = {
         code:         form.code.trim().toUpperCase(),
         nom:          form.nom.trim(),
+        credit,
+        type:         form.type,
         coefficient:  coef,
-        filiereId:    form.filiereId    ? Number(form.filiereId)    : undefined,
-        niveauId:     form.niveauId     ? Number(form.niveauId)     : undefined,
-        semestreId:   form.semestreId   ? Number(form.semestreId)   : undefined,
+        semestreId:   Number(form.semestreId),
         enseignantId: form.enseignantId ? Number(form.enseignantId) : undefined,
       }
       if (editId) {
@@ -332,7 +310,7 @@ export default function Matieres() {
       setShowModal(false); await loadAll()
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } }
-      setFormError(e.response?.data?.message ?? "Erreur lors de l'enregistrement.")
+      setFormError(e.response?.data?.message ?? 'Erreur lors de l\'enregistrement.')
     } finally {
       setSaving(false)
     }
@@ -482,7 +460,7 @@ export default function Matieres() {
       {showModal && (
         <Modal
           form={form} editId={editId} error={formError} loading={saving}
-          filieres={filieres} niveaux={niveaux} semestres={semestres} enseignants={enseignants}
+          semestres={semestres} enseignants={enseignants}
           onChange={setForm} onSave={handleSave} onClose={() => setShowModal(false)}
         />
       )}

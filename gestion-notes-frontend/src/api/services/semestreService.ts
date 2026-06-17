@@ -6,6 +6,11 @@ export interface Semestre {
   nom: string
   annee?: { id: number; libelle: string }
   statut?: string
+  niveau?: {
+    id: number
+    nom: string
+    filiere?: { id: number; nom: string; code: string }
+  }
 }
 
 export interface SemestrePayload {

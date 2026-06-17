@@ -7,15 +7,11 @@ export interface Matiere {
   code: string
   nom: string
   coefficient: number
-  semestre?: {
-    id: number
-    nom: string
-    niveau?: {
-      id: number
-      nom: string
-      filiere?: { id: number; nom: string; code: string }
-    }
-  }
+  credit : number
+  type : string
+  filiere?: { id: number; nom: string; code: string }
+  niveau?: { id: number; nom: string }
+  semestre?: { id: number; nom: string }
   enseignant?: { id: number; nomComplet: string }
 }
 
