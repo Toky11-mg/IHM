@@ -29,7 +29,7 @@ class MatiereController extends AbstractController
     // =====================
     #[Route('', name: 'list', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-public function list(Request $request): JsonResponse
+    public function list(Request $request): JsonResponse
     {
         $criteria = [];
         if ($request->query->get('semestreId')) {
@@ -50,6 +50,26 @@ public function list(Request $request): JsonResponse
         }
 
         $matieres = $this->repo->findBy($criteria, ['nom' => 'ASC']);
+
+        // ── Filtre niveau/filière en mémoire ──────────────────────────────
+        // Matiere n'a pas de colonne niveau_id/filiere_id directe : ces infos
+        // sont dérivées via Matiere -> Semestre -> Niveau -> Filiere.
+        // On filtre donc en PHP après la requête Doctrine.
+        $niveauId  = $request->query->get('niveauId');
+        $filiereId = $request->query->get('filiereId');
+
+        if ($niveauId) {
+            $matieres = array_filter($matieres, fn(Matiere $m) =>
+                $m->getSemestre()?->getNiveau()?->getId() == $niveauId
+            );
+        }
+        if ($filiereId) {
+            $matieres = array_filter($matieres, fn(Matiere $m) =>
+                $m->getSemestre()?->getNiveau()?->getFiliere()?->getId() == $filiereId
+            );
+        }
+        $matieres = array_values($matieres);
+        // ────────────────────────────────────────────────────────────────
 
         return $this->json([
             'success' => true,
@@ -232,6 +252,18 @@ public function list(Request $request): JsonResponse
             if (isset($data['noteExPoids'])) $matiere->setNoteExPoids((string) $data['noteExPoids']);
             if (isset($data['isActive']))    $matiere->setIsActive((bool) $data['isActive']);
 
+            // Changement de semestre (optionnel)
+            if (isset($data['semestreId'])) {
+                $semestre = $this->em->getRepository(Semestre::class)->find($data['semestreId']);
+                if (!$semestre) {
+                    return $this->json([
+                        'success' => false,
+                        'message' => 'Semestre non trouvé.',
+                    ], Response::HTTP_NOT_FOUND);
+                }
+                $matiere->setSemestre($semestre);
+            }
+
             if (array_key_exists('enseignantId', $data)) {
                 if ($data['enseignantId'] === null) {
                     $matiere->setEnseignant(null);
@@ -319,6 +351,9 @@ public function list(Request $request): JsonResponse
 
     private function serialize(Matiere $m): array
     {
+        $niveau  = $m->getSemestre()?->getNiveau();
+        $filiere = $niveau?->getFiliere();
+
         return [
             'id'          => $m->getId(),
             'nom'         => $m->getNom(),
@@ -333,6 +368,17 @@ public function list(Request $request): JsonResponse
                 'id'  => $m->getSemestre()?->getId(),
                 'nom' => $m->getSemestre()?->getNom(),
             ],
+            // ── Dérivés via Semestre -> Niveau -> Filiere ──────────────────
+            'niveau' => $niveau ? [
+                'id'  => $niveau->getId(),
+                'nom' => $niveau->getNom(),
+            ] : null,
+            'filiere' => $filiere ? [
+                'id'   => $filiere->getId(),
+                'nom'  => $filiere->getNom(),
+                'code' => $filiere->getCode(),
+            ] : null,
+            // ────────────────────────────────────────────────────────────
             'enseignant' => $m->getEnseignant() ? [
                 'id'        => $m->getEnseignant()->getId(),
                 'nomComplet' => $m->getEnseignant()->getNomComplet(),

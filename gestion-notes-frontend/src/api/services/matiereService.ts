@@ -6,6 +6,8 @@ export interface Matiere {
   code: string
   nom: string
   coefficient: number
+  credit : number
+  type : string
   filiere?: { id: number; nom: string; code: string }
   niveau?: { id: number; nom: string }
   semestre?: { id: number; nom: string }
