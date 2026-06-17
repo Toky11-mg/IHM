@@ -7,20 +7,23 @@ import { semestreService, type Semestre } from '../../api/services/semestreServi
 import { enseignantService, type Enseignant } from '../../api/services/enseignantService'
 
 // ─── Types form ───────────────────────────────────────────────────────────────
+// NOTE IMPORTANTE : Matiere n'est liée qu'au SEMESTRE en base de données.
+// niveau/filiere sont DÉRIVÉS du semestre (semestre → niveau → filière).
+// Le formulaire ne doit donc envoyer que semestreId, pas filiereId/niveauId.
 
 interface MatiereForm {
   code: string
   nom: string
+  credit: string
+  type: string
   coefficient: string
-  filiereId: string
-  niveauId: string
   semestreId: string
   enseignantId: string
 }
 
 const FORM_INIT: MatiereForm = {
-  code: '', nom: '', coefficient: '1',
-  filiereId: '', niveauId: '', semestreId: '', enseignantId: '',
+  code: '', nom: '', credit: '3', type: 'cours', coefficient: '1',
+  semestreId: '', enseignantId: '',
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -65,8 +68,6 @@ interface ModalProps {
   editId: number | null
   error: string
   loading: boolean
-  filieres: Filiere[]
-  niveaux: Niveau[]
   semestres: Semestre[]
   enseignants: Enseignant[]
   onChange: (f: MatiereForm) => void
@@ -74,7 +75,7 @@ interface ModalProps {
   onClose: () => void
 }
 
-function Modal({ form, editId, error, loading, filieres, niveaux, semestres, enseignants, onChange, onSave, onClose }: ModalProps) {
+function Modal({ form, editId, error, loading, semestres, enseignants, onChange, onSave, onClose }: ModalProps) {
   const set = (k: keyof MatiereForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       onChange({ ...form, [k]: e.target.value })
@@ -106,36 +107,41 @@ function Modal({ form, editId, error, loading, filieres, niveaux, semestres, ens
 
         <div style={S.formRow}>
           <div style={S.formGroup}>
-            <label style={S.label}>Filière</label>
-            <select style={S.formInput} value={form.filiereId} onChange={set('filiereId')}>
-              <option value="">— Choisir —</option>
-              {filieres.map(f => <option key={f.id} value={f.id}>{f.code} — {f.nom}</option>)}
-            </select>
+            <label style={S.label}>Crédit *</label>
+            <input style={S.formInput} type="number" value={form.credit} onChange={set('credit')} min="1" max="20" />
           </div>
           <div style={S.formGroup}>
-            <label style={S.label}>Niveau</label>
-            <select style={S.formInput} value={form.niveauId} onChange={set('niveauId')}>
-              <option value="">— Choisir —</option>
-              {niveaux.map(n => <option key={n.id} value={n.id}>{n.nom}</option>)}
+            <label style={S.label}>Type *</label>
+            <select style={S.formInput} value={form.type} onChange={set('type')}>
+              <option value="cours">Cours</option>
+              <option value="td">TD</option>
+              <option value="tp">TP</option>
             </select>
           </div>
         </div>
 
-        <div style={S.formRow}>
-          <div style={S.formGroup}>
-            <label style={S.label}>Semestre</label>
-            <select style={S.formInput} value={form.semestreId} onChange={set('semestreId')}>
-              <option value="">— Choisir —</option>
-              {semestres.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
-            </select>
-          </div>
-          <div style={S.formGroup}>
-            <label style={S.label}>Enseignant responsable</label>
-            <select style={S.formInput} value={form.enseignantId} onChange={set('enseignantId')}>
-              <option value="">— Choisir —</option>
-              {enseignants.map(e => <option key={e.id} value={e.id}>{e.nomComplet}</option>)}
-            </select>
-          </div>
+        {/* Semestre — c'est LA SEULE source de niveau/filière en base de données.
+            Le libellé inclut niveau + filière pour aider l'utilisateur à choisir. */}
+        <div style={S.formGroup}>
+          <label style={S.label}>Semestre *</label>
+          <select style={S.formInput} value={form.semestreId} onChange={set('semestreId')}>
+            <option value="">— Choisir —</option>
+            {semestres.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.nom}
+                {s.niveau ? ` — ${s.niveau.nom}` : ''}
+                {s.niveau?.filiere ? ` (${s.niveau.filiere.code})` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div style={S.formGroup}>
+          <label style={S.label}>Enseignant responsable</label>
+          <select style={S.formInput} value={form.enseignantId} onChange={set('enseignantId')}>
+            <option value="">— Choisir —</option>
+            {enseignants.map(e => <option key={e.id} value={e.id}>{e.nomComplet}</option>)}
+          </select>
         </div>
 
         <div style={S.footer}>
@@ -225,13 +231,17 @@ export default function Matieres() {
   useEffect(() => { loadAll() }, [loadAll])
 
   // ─── Filtrage ────────────────────────────────────────────────────────────────
+  // IMPORTANT : m.semestre.id est un NOMBRE (vient du backend en JSON),
+  // alors que filterSem (état du <select>) est une STRING.
+  // On compare donc avec String(...) des deux côtés pour éviter
+  // un filtre silencieusement cassé (3 !== "3").
 
   const filtered = useMemo(() => matieres.filter(m => {
     const q = search.toLowerCase()
-    const matchQ = !q || m.nom.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
-    const matchF = !filterFil || String(m.filiere?.id) === filterFil
-    const matchS = !filterSem || String(m.semestre?.id) === filterSem
-    return matchQ && matchF && matchS
+    const matchQ   = !q || m.nom.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
+    const matchFil = !filterFil || String(m.filiere?.id) === filterFil
+    const matchSem = !filterSem || String(m.semestre?.id) === filterSem
+    return matchQ && matchFil && matchSem
   }), [matieres, search, filterFil, filterSem])
 
   // ─── Modal ───────────────────────────────────────────────────────────────────
@@ -244,9 +254,9 @@ export default function Matieres() {
     setForm({
       code:         m.code,
       nom:          m.nom,
+      credit:       String(m.credit ?? 3),
+      type:         m.type ?? 'cours',
       coefficient:  String(m.coefficient),
-      filiereId:    String(m.filiere?.id ?? ''),
-      niveauId:     String(m.niveau?.id ?? ''),
       semestreId:   String(m.semestre?.id ?? ''),
       enseignantId: String(m.enseignant?.id ?? ''),
     })
@@ -259,9 +269,16 @@ export default function Matieres() {
     if (!form.code.trim() || !form.nom.trim()) {
       setFormError('Code et nom sont obligatoires.'); return
     }
+    if (!form.semestreId) {
+      setFormError('Le semestre est obligatoire.'); return
+    }
     const coef = parseFloat(form.coefficient)
     if (isNaN(coef) || coef <= 0) {
       setFormError('Coefficient invalide.'); return
+    }
+    const credit = parseInt(form.credit, 10)
+    if (isNaN(credit) || credit <= 0) {
+      setFormError('Crédit invalide.'); return
     }
 
     setSaving(true)
@@ -270,10 +287,10 @@ export default function Matieres() {
       const payload = {
         code:         form.code.trim().toUpperCase(),
         nom:          form.nom.trim(),
+        credit,
+        type:         form.type,
         coefficient:  coef,
-        filiereId:    form.filiereId    ? Number(form.filiereId)    : undefined,
-        niveauId:     form.niveauId     ? Number(form.niveauId)     : undefined,
-        semestreId:   form.semestreId   ? Number(form.semestreId)   : undefined,
+        semestreId:   Number(form.semestreId),
         enseignantId: form.enseignantId ? Number(form.enseignantId) : undefined,
       }
 
@@ -287,8 +304,12 @@ export default function Matieres() {
       setShowModal(false)
       await loadAll()
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } }
-      setFormError(e.response?.data?.message ?? 'Erreur lors de l\'enregistrement.')
+      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string> } } }
+      const errors = e.response?.data?.errors
+      const msg = errors
+        ? Object.values(errors).join(' ')
+        : (e.response?.data?.message ?? 'Erreur lors de l\'enregistrement.')
+      setFormError(msg)
     } finally {
       setSaving(false)
     }
@@ -394,7 +415,7 @@ export default function Matieres() {
       {showModal && (
         <Modal
           form={form} editId={editId} error={formError} loading={saving}
-          filieres={filieres} niveaux={niveaux} semestres={semestres} enseignants={enseignants}
+          semestres={semestres} enseignants={enseignants}
           onChange={setForm} onSave={handleSave} onClose={() => setShowModal(false)}
         />
       )}
