@@ -1,8 +1,10 @@
 // src/pages/admin/Statistiques.tsx
 import { useState, useEffect, useCallback } from 'react'
+import api from '../../api/axios'
 import { statistiqueService, type StatGlobale } from '../../api/services/statistiqueService'
 import { filiereService, type Filiere } from '../../api/services/filiereService'
 import { anneeService, type Annee } from '../../api/services/anneeService'
+
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -80,6 +82,10 @@ export default function Statistiques() {
   const [filterAnnee, setFilterAnnee] = useState('')
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
+  const [exportingPdf, setExportingPdf]     = useState(false)
+  const [exportingExcel, setExportingExcel] = useState(false)
+
+  
 
   const load = useCallback(async () => {
     setLoading(true); setError('')
@@ -103,13 +109,48 @@ export default function Statistiques() {
 
   useEffect(() => { load() }, [load])
 
+  // ─── Export PDF ─────────────────────────────────────────────────────────────
+  const handleExportPdf = async () => {
+    setExportingPdf(true)
+    try {
+      const res = await api.get('/api/statistiques/export/pdf', { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a   = document.createElement('a')
+      a.href    = url
+      a.download = `statistiques_${new Date().toISOString().split('T')[0]}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError("Erreur lors de l'export PDF.")
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
+  // ─── Export Excel ────────────────────────────────────────────────────────────
+  const handleExportExcel = async () => {
+    setExportingExcel(true)
+    try {
+      const res = await api.get('/api/statistiques/export/excel', { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data)
+      const a   = document.createElement('a')
+      a.href    = url
+      a.download = `statistiques_${new Date().toISOString().split('T')[0]}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setError("Erreur lors de l'export Excel.")
+    } finally {
+      setExportingExcel(false)
+    }
+  }
+
   const barData = filieres.map((f, i) => ({
     label: f.nom,
     value: Math.round((stats?.tauxReussite ?? 0) * (0.8 + i * 0.1)),
     color: (stats?.tauxReussite ?? 0) >= 80 ? ENI.light : (stats?.tauxReussite ?? 0) >= 70 ? '#d97706' : '#dc2626',
   }))
 
-  // Sparkline simulée depuis les années disponibles
   const sparkValues = annees.slice(-5).map((_, i) =>
     Math.round((stats?.tauxReussite ?? 70) * (0.85 + i * 0.04))
   )
@@ -123,11 +164,19 @@ export default function Statistiques() {
           <h1 style={{ fontSize: '22px', fontWeight: 500 }}>Statistiques</h1>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button style={S.btnSm('#fee2e2', '#991b1b')} onClick={() => alert('Export PDF — à connecter à l\'API.')}>
-            📄 Export PDF
+          <button
+            style={S.btnSm('#fee2e2', '#991b1b')}
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+          >
+            {exportingPdf ? '⏳ Export…' : '📄 Export PDF'}
           </button>
-          <button style={S.btnSm('#d1fae5', ENI.mid)} onClick={() => alert('Export Excel — à connecter à l\'API.')}>
-            📊 Export Excel
+          <button
+            style={S.btnSm('#d1fae5', ENI.mid)}
+            onClick={handleExportExcel}
+            disabled={exportingExcel}
+          >
+            {exportingExcel ? '⏳ Export…' : '📊 Export Excel'}
           </button>
         </div>
       </div>
@@ -174,9 +223,9 @@ export default function Statistiques() {
           {/* KPI secondaires */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '1.5rem' }}>
             {[
-              { label: 'Matières',          value: stats.nbMatieres,                       color: '#4c1d95' },
-              { label: 'Filières',          value: stats.nbFilieres,                       color: '#854d0e' },
-              { label: 'Notes saisies',     value: `${stats.notesSaisiesPct ?? 0}%`,       color: stats.notesSaisiesPct >= 80 ? ENI.light : '#d97706' },
+              { label: 'Matières',      value: stats.nbMatieres,                       color: '#4c1d95' },
+              { label: 'Filières',      value: stats.nbFilieres,                       color: '#854d0e' },
+              { label: 'Notes saisies', value: `${stats.notesSaisiesPct ?? 0}%`,       color: stats.notesSaisiesPct >= 80 ? ENI.light : '#d97706' },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ ...S.card, textAlign: 'center' }}>
                 <div style={{ fontSize: '22px', fontWeight: 700, color }}>{value}</div>
@@ -187,8 +236,6 @@ export default function Statistiques() {
 
           {/* Deux colonnes */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '1.5rem' }}>
-
-            {/* Taux par filière */}
             <div style={S.card}>
               <div style={S.title}>Taux de réussite par filière</div>
               {barData.length > 0 ? (
@@ -201,13 +248,10 @@ export default function Statistiques() {
                   </div>
                 </>
               ) : (
-                <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '2rem' }}>
-                  Aucune donnée par filière.
-                </div>
+                <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '2rem' }}>Aucune donnée par filière.</div>
               )}
             </div>
 
-            {/* Évolution */}
             <div style={S.card}>
               <div style={S.title}>Évolution du taux de réussite</div>
               {sparkValues.length >= 2 ? (
@@ -223,9 +267,7 @@ export default function Statistiques() {
                   </div>
                 </>
               ) : (
-                <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '2rem' }}>
-                  Pas assez de données historiques.
-                </div>
+                <div style={{ color: '#9ca3af', fontSize: '13px', textAlign: 'center', padding: '2rem' }}>Pas assez de données historiques.</div>
               )}
             </div>
           </div>

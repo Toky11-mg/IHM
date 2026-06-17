@@ -1,7 +1,7 @@
 export const storage = {
-  getToken: () => localStorage.getItem('token'),
-  setToken: (token: string) => localStorage.setItem('token', token),
-  removeToken: () => localStorage.removeItem('token'),
+  getToken: () => localStorage.getItem('eni_token'),
+  setToken: (token: string) => localStorage.setItem('eni_token', token),
+  removeToken: () => localStorage.removeItem('eni_token'),
 
   getUser: () => {
     const u = localStorage.getItem('user')
