@@ -134,9 +134,13 @@ export default function MesMatieres() {
         <input style={S.input} placeholder="Rechercher une matière…" value={search} onChange={e => { setSearch(e.target.value); setSelected(null) }} />
         <select style={S.select} value={filterSem} onChange={e => setFilterSem(e.target.value)}>
   <option value="">Tous les semestres</option>
-  {[...new Set(matieres.map(m => m.semestre.nom))].map(s => (
-    <option key={s} value={s}>{s}</option>
-  ))}
+  {[...new Set(
+  matieres
+    .map(m => typeof m.semestre === 'object' ? m.semestre?.nom : m.semestre)
+    .filter((s): s is string => typeof s === 'string' && s.length > 0)
+)].map(s => (
+  <option key={s} value={s}>{s}</option>
+))}
 </select>
       </div>
 

@@ -3,16 +3,18 @@ import { toArray } from './utils'
 
 export interface Note {
   id: number
-  matiere: string
+  matiere: string | { id: number; nom: string; code: string }
   code: string
   noteCc: string | null
   noteExamen: string | null
   noteFinale: string | null
   mention: string | null
   isValidee: boolean
-  semestre: string
+  semestre: string | { id: number; nom: string }
   etudiant?: { id: number; nomComplet: string; matricule: string }
 }
+
+
 
 export interface NotePayload {
   etudiantId: number

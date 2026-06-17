@@ -90,7 +90,7 @@ function EnseignantModal({ form, editId, error, loading, onChange, onSave, onClo
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         <FormField label="Grade">
           <Select value={form.grade} onChange={onChange('grade')}>
-            {grades.map(g => <option key={g}>{g}</option>)}
+            {grades.map(g => <option key={g} value={g}>{g}</option>)}
           </Select>
         </FormField>
         <FormField label="Spécialité">
@@ -248,7 +248,7 @@ export default function Enseignants() {
         <input style={S.searchInput} placeholder="Rechercher nom, prénom, matricule…" value={search} onChange={e => setSearch(e.target.value)} />
         <select style={S.select} value={filterGrade} onChange={e => setFilterGrade(e.target.value)}>
           <option value="">Tous les grades</option>
-          {grades.map(g => <option key={g}>{g}</option>)}
+          {grades.map(g => <option key={g} value={g}>{g}</option>)}
         </select>
         <select style={S.select} value={filterStatut} onChange={e => setFilterStatut(e.target.value)}>
           <option value="">Tous les statuts</option>

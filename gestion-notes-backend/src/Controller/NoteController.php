@@ -99,6 +99,84 @@ class NoteController extends AbstractController
         ]);
     }
 
+    #[Route('/me/pdf', name: 'me_pdf', methods: ['GET'])]
+#[IsGranted('ROLE_ETUDIANT')]
+public function downloadPdf(): Response
+{
+    $user = $this->getUser();
+
+    $etudiant = $this->em
+        ->getRepository(Etudiant::class)
+        ->findOneBy(['user' => $user]);
+
+    if (!$etudiant) {
+        return new Response("Étudiant introuvable.", 404);
+    }
+
+    $notes = $this->repo->findBy(
+        ['etudiant' => $etudiant],
+        ['dateSaisie' => 'ASC']
+    );
+
+    $html = '
+    <h2 style="text-align:center;">RELEVÉ DE NOTES</h2>
+
+    <p><strong>Nom :</strong> ' . $etudiant->getNomComplet() . '</p>
+    <p><strong>Matricule :</strong> ' . $etudiant->getMatricule() . '</p>
+    <p><strong>Filière :</strong> ' . ($etudiant->getFiliere()?->getNom() ?? '-') . '</p>
+    <p><strong>Niveau :</strong> ' . ($etudiant->getNiveau()?->getNom() ?? '-') . '</p>
+
+    <br>
+
+    <table width="100%" border="1" cellspacing="0" cellpadding="5">
+        <thead>
+            <tr>
+                <th>Matière</th>
+                <th>CC</th>
+                <th>Examen</th>
+                <th>Finale</th>
+                <th>Mention</th>
+                <th>Semestre</th>
+            </tr>
+        </thead>
+        <tbody>
+    ';
+
+    foreach ($notes as $note) {
+        $html .= '
+        <tr>
+            <td>' . $note->getMatiere()?->getNom() . '</td>
+            <td>' . $note->getNoteCc() . '</td>
+            <td>' . $note->getNoteExamen() . '</td>
+            <td>' . $note->getNoteFinale() . '</td>
+            <td>' . $note->getMention() . '</td>
+            <td>' . $note->getSemestre()?->getNom() . '</td>
+        </tr>';
+    }
+
+    $html .= '
+        </tbody>
+    </table>
+    ';
+
+    $options = new Options();
+    $options->set('isRemoteEnabled', true);
+
+    $dompdf = new Dompdf($options);
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
+
+    return new Response(
+        $dompdf->output(),
+        200,
+        [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="releve_notes.pdf"',
+        ]
+    );
+}
+
     // =====================
     // GET /api/notes/{id}
     // =====================
@@ -476,82 +554,6 @@ class NoteController extends AbstractController
         }
         return $messages;
     }
-#[Route('/me/pdf', name: 'me_pdf', methods: ['GET'])]
-#[IsGranted('ROLE_ETUDIANT')]
-public function downloadPdf(): Response
-{
-    $user = $this->getUser();
 
-    $etudiant = $this->em
-        ->getRepository(Etudiant::class)
-        ->findOneBy(['user' => $user]);
-
-    if (!$etudiant) {
-        return new Response("Étudiant introuvable.", 404);
-    }
-
-    $notes = $this->repo->findBy(
-        ['etudiant' => $etudiant],
-        ['dateSaisie' => 'ASC']
-    );
-
-    $html = '
-    <h2 style="text-align:center;">RELEVÉ DE NOTES</h2>
-
-    <p><strong>Nom :</strong> ' . $etudiant->getNomComplet() . '</p>
-    <p><strong>Matricule :</strong> ' . $etudiant->getMatricule() . '</p>
-    <p><strong>Filière :</strong> ' . ($etudiant->getFiliere()?->getNom() ?? '-') . '</p>
-    <p><strong>Niveau :</strong> ' . ($etudiant->getNiveau()?->getNom() ?? '-') . '</p>
-
-    <br>
-
-    <table width="100%" border="1" cellspacing="0" cellpadding="5">
-        <thead>
-            <tr>
-                <th>Matière</th>
-                <th>CC</th>
-                <th>Examen</th>
-                <th>Finale</th>
-                <th>Mention</th>
-                <th>Semestre</th>
-            </tr>
-        </thead>
-        <tbody>
-    ';
-
-    foreach ($notes as $note) {
-        $html .= '
-        <tr>
-            <td>' . $note->getMatiere()?->getNom() . '</td>
-            <td>' . $note->getNoteCc() . '</td>
-            <td>' . $note->getNoteExamen() . '</td>
-            <td>' . $note->getNoteFinale() . '</td>
-            <td>' . $note->getMention() . '</td>
-            <td>' . $note->getSemestre()?->getNom() . '</td>
-        </tr>';
-    }
-
-    $html .= '
-        </tbody>
-    </table>
-    ';
-
-    $options = new Options();
-    $options->set('isRemoteEnabled', true);
-
-    $dompdf = new Dompdf($options);
-    $dompdf->loadHtml($html);
-    $dompdf->setPaper('A4', 'portrait');
-    $dompdf->render();
-
-    return new Response(
-        $dompdf->output(),
-        200,
-        [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="releve_notes.pdf"',
-        ]
-    );
-}
 }
 

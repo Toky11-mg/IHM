@@ -177,7 +177,7 @@ function CreateModal({ form, error, onChange, onSave, onClose }: CreateModalProp
           <label style={S.label}>Motif *</label>
           <select style={S.formInput} value={form.motif} onChange={set('motif')}>
             <option value="">— Choisir un motif —</option>
-            {MOTIFS.map(m => <option key={m}>{m}</option>)}
+            {MOTIFS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
 

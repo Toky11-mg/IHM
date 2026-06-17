@@ -329,10 +329,18 @@ public function list(Request $request): JsonResponse
             'noteCcPoids' => $m->getNoteCcPoids(),
             'noteExPoids' => $m->getNoteExPoids(),
             'isActive'    => $m->isActive(),
-            'semestre'    => [
+            'semestre' => [
                 'id'  => $m->getSemestre()?->getId(),
                 'nom' => $m->getSemestre()?->getNom(),
-            ],
+                'niveau' => [
+                'id'  => $m->getSemestre()?->getNiveau()?->getId(),
+                'nom' => $m->getSemestre()?->getNiveau()?->getNom(),
+                'filiere' => [
+            'id'  => $m->getSemestre()?->getNiveau()?->getFiliere()?->getId(),
+            'nom' => $m->getSemestre()?->getNiveau()?->getFiliere()?->getNom(),
+        ],
+    ],
+],
             'enseignant' => $m->getEnseignant() ? [
                 'id'        => $m->getEnseignant()->getId(),
                 'nomComplet' => $m->getEnseignant()->getNomComplet(),

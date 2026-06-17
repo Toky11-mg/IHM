@@ -2,19 +2,21 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { enseignantService, type Enseignant } from '../../api/services/enseignantService'
 import { noteService, type Note, type NotePayload } from '../../api/services/noteService'
-import { etudiantService, type Etudiant } from '../../api/services/etudiantService'
 
 type Matiere = NonNullable<Enseignant['matieres']>[number]
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface LigneNote {
-  etudiant: Etudiant
-  noteId: number | null
-  noteCc: string
-  noteExamen: string
-  noteFinale: string
-  modifie: boolean
+  etudiantId:   number
+  matricule:    string
+  nom:          string
+  prenom:       string
+  noteId:       number | null
+  noteCc:       string
+  noteExamen:   string
+  noteFinale:   string
+  modifie:      boolean
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -33,7 +35,6 @@ const S = {
   badge:     (bg: string, color: string) => ({ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: '99px', fontSize: '11px', fontWeight: 600, backgroundColor: bg, color } as React.CSSProperties),
   btnPrimary:{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 18px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', border: 'none', backgroundColor: ENI.light, color: '#fff' } as React.CSSProperties,
   btnGhost:  { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', border: '0.5px solid #d1d5db', backgroundColor: 'transparent', color: '#374151' } as React.CSSProperties,
-  btnSm:     (bg: string, color: string) => ({ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 500, cursor: 'pointer', border: 'none', backgroundColor: bg, color } as React.CSSProperties),
   success:   { marginBottom: '1rem', padding: '10px 14px', borderRadius: '8px', backgroundColor: '#d1fae5', color: '#065f46', fontSize: '13px' },
   errBox:    { marginBottom: '1rem', padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px' },
   warn:      { padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fef9c3', color: '#854d0e', fontSize: '13px', marginBottom: '1rem' },
@@ -78,7 +79,12 @@ export default function SaisieNotes() {
 
   useEffect(() => { loadMatieres() }, [loadMatieres])
 
-  // Chargement étudiants + notes existantes à la sélection d'une matière
+  // ── CORRECTION 403 ──────────────────────────────────────────────────────────
+  // On ne fait plus etudiantService.list() (route interdite aux enseignants).
+  // À la place on charge uniquement les notes de la matière — le backend y
+  // embarque déjà les infos étudiant (etudiant.id / matricule / nom / prenom).
+  // Si des étudiants n'ont pas encore de note, ils n'apparaîtront pas ici ;
+  // c'est le comportement attendu côté enseignant (création à la première saisie).
   const handleSelectMatiere = useCallback(async (id: number | '') => {
     setMatiereId(id)
     setLignes([])
@@ -87,25 +93,22 @@ export default function SaisieNotes() {
 
     setLoading(true)
     try {
-      const [etudiants, notes] = await Promise.all([
-        etudiantService.list(),
-        noteService.list({ matiereId: id as number }),
-      ])
+      const notes: Note[] = await noteService.list({ matiereId: id as number })
 
-      const lignesInit: LigneNote[] = etudiants.map(e => {
-        const note = notes.find(n => n.etudiant?.id === e.id)
-        return {
-          etudiant:    e,
-          noteId:      note?.id ?? null,
-          noteCc:      note?.noteCc ?? '',
-          noteExamen:  note?.noteExamen ?? '',
-          noteFinale:  note?.noteFinale ?? '',
-          modifie:     false,
-        }
-      })
+      const lignesInit: LigneNote[] = notes.map(note => ({
+        etudiantId:  note.etudiant?.id      ?? 0,
+        matricule:   note.etudiant?.matricule ?? '—',
+        nom:         note.etudiant?.nomComplet?.split(' ')[0] ?? '—',
+        prenom:      note.etudiant?.nomComplet?.split(' ').slice(1).join(' ') ?? '',
+        noteId:      note.id,
+        noteCc:      note.noteCc     != null ? String(note.noteCc)     : '',
+        noteExamen:  note.noteExamen != null ? String(note.noteExamen) : '',
+        noteFinale:  note.noteFinale != null ? String(note.noteFinale) : '',
+        modifie:     false,
+      }))
       setLignes(lignesInit)
     } catch {
-      setError('Erreur lors du chargement des étudiants.')
+      setError('Erreur lors du chargement des notes.')
     } finally {
       setLoading(false)
     }
@@ -116,7 +119,7 @@ export default function SaisieNotes() {
   // Mise à jour note
   const handleChange = (etudiantId: number, field: 'noteCc' | 'noteExamen', val: string) => {
     setLignes(prev => prev.map(l =>
-      l.etudiant.id === etudiantId
+      l.etudiantId === etudiantId
         ? { ...l, [field]: val, modifie: true }
         : l
     ))
@@ -133,7 +136,10 @@ export default function SaisieNotes() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return lignes.filter(l =>
-      !q || l.etudiant.nom.toLowerCase().includes(q) || l.etudiant.matricule.toLowerCase().includes(q)
+      !q ||
+      l.nom.toLowerCase().includes(q) ||
+      l.prenom.toLowerCase().includes(q) ||
+      l.matricule.toLowerCase().includes(q)
     )
   }, [lignes, search])
 
@@ -144,7 +150,7 @@ export default function SaisieNotes() {
       (l.noteExamen !== '' && !isValid(l.noteExamen))
     )
     if (invalides.length) {
-      setFormError(`Notes invalides (0–20) : ${invalides.map(l => l.etudiant.matricule).join(', ')}`)
+      setFormError(`Notes invalides (0–20) : ${invalides.map(l => l.matricule).join(', ')}`)
       return
     }
     setFormError('')
@@ -161,7 +167,7 @@ export default function SaisieNotes() {
         .filter(l => l.modifie)
         .map(l => {
           const payload: NotePayload = {
-            etudiantId: l.etudiant.id,
+            etudiantId: l.etudiantId,
             matiereId:  matiereId as number,
             semestreId: matiere?.semestre.id ?? 0,
             noteCc:     l.noteCc     !== '' ? parseFloat(l.noteCc)     : undefined,
@@ -174,7 +180,7 @@ export default function SaisieNotes() {
 
       await Promise.all(promises)
       showFlash(`${promises.length} note(s) enregistrée(s) avec succès.`)
-      await handleSelectMatiere(matiereId) // Recharger
+      await handleSelectMatiere(matiereId)
     } catch {
       setError('Erreur lors de l\'enregistrement des notes.')
     } finally {
@@ -190,8 +196,8 @@ export default function SaisieNotes() {
         <h1 style={{ fontSize: '22px', fontWeight: 500 }}>Saisie des notes</h1>
       </div>
 
-      {flash    && <div style={S.success}>✓ {flash}</div>}
-      {error    && <div style={S.errBox}>⚠ {error}</div>}
+      {flash     && <div style={S.success}>✓ {flash}</div>}
+      {error     && <div style={S.errBox}>⚠ {error}</div>}
       {formError && <div style={S.errBox}>⚠ {formError}</div>}
 
       {/* Sélection matière */}
@@ -233,10 +239,10 @@ export default function SaisieNotes() {
           {/* Stats live */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '1rem' }}>
             {[
-              { label: 'Étudiants',  value: lignes.length,                color: '#111827' },
-              { label: 'Saisies',    value: nbSaisies,                    color: ENI.light },
-              { label: 'Modifiées',  value: nbModifies,                   color: nbModifies ? '#d97706' : '#9ca3af' },
-              { label: 'Moyenne',    value: moyenneLive ? `${moyenneLive}/20` : '—', color: '#1e40af' },
+              { label: 'Étudiants',  value: lignes.length,                                    color: '#111827' },
+              { label: 'Saisies',    value: nbSaisies,                                         color: ENI.light },
+              { label: 'Modifiées',  value: nbModifies,                                        color: nbModifies ? '#d97706' : '#9ca3af' },
+              { label: 'Moyenne',    value: moyenneLive ? `${moyenneLive}/20` : '—',           color: '#1e40af' },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ backgroundColor: '#fff', borderRadius: '10px', border: '0.5px solid #e5e7eb', padding: '10px', textAlign: 'center' }}>
                 <div style={{ fontSize: '16px', fontWeight: 700, color }}>{value}</div>
@@ -265,6 +271,11 @@ export default function SaisieNotes() {
           {/* Tableau */}
           {loading ? (
             <div style={S.spinner}>⏳ Chargement des étudiants…</div>
+          ) : lignes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>📭</div>
+              <p>Aucune note enregistrée pour cette matière.</p>
+            </div>
           ) : (
             <div style={S.cardNp}>
               <table style={S.table}>
@@ -280,20 +291,20 @@ export default function SaisieNotes() {
                     const finale = parseFloat(l.noteFinale)
                     const valide = l.noteFinale !== '' && isValid(l.noteFinale)
                     return (
-                      <tr key={l.etudiant.id} style={{ backgroundColor: l.modifie ? '#fffbeb' : 'transparent' }}>
+                      <tr key={l.etudiantId} style={{ backgroundColor: l.modifie ? '#fffbeb' : 'transparent' }}>
                         <td style={{ ...S.td, color: '#9ca3af', width: '40px' }}>{i + 1}</td>
                         <td style={S.td}>
                           <span style={{ fontFamily: 'monospace', fontSize: '12px', color: '#6b7280', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>
-                            {l.etudiant.matricule}
+                            {l.matricule}
                           </span>
                         </td>
-                        <td style={{ ...S.td, fontWeight: 500 }}>{l.etudiant.nom} {l.etudiant.prenom}</td>
+                        <td style={{ ...S.td, fontWeight: 500 }}>{l.nom} {l.prenom}</td>
                         <td style={S.td}>
                           <input
                             style={{ ...S.noteInput, borderColor: l.noteCc !== '' && !isValid(l.noteCc) ? '#dc2626' : l.modifie ? '#d97706' : '#d1d5db' }}
                             type="number" min="0" max="20" step="0.25"
                             value={l.noteCc}
-                            onChange={e => handleChange(l.etudiant.id, 'noteCc', e.target.value)}
+                            onChange={e => handleChange(l.etudiantId, 'noteCc', e.target.value)}
                             placeholder="—"
                           />
                         </td>
@@ -302,7 +313,7 @@ export default function SaisieNotes() {
                             style={{ ...S.noteInput, borderColor: l.noteExamen !== '' && !isValid(l.noteExamen) ? '#dc2626' : l.modifie ? '#d97706' : '#d1d5db' }}
                             type="number" min="0" max="20" step="0.25"
                             value={l.noteExamen}
-                            onChange={e => handleChange(l.etudiant.id, 'noteExamen', e.target.value)}
+                            onChange={e => handleChange(l.etudiantId, 'noteExamen', e.target.value)}
                             placeholder="—"
                           />
                         </td>

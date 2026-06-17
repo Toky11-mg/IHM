@@ -322,10 +322,15 @@ class SemestreController extends AbstractController
             'isSaisieOuverte' => $s->isSaisieOuverte(),
             'dateDebutSaisie' => $s->getDateDebutSaisie()?->format('Y-m-d'),
             'dateFinSaisie'   => $s->getDateFinSaisie()?->format('Y-m-d'),
-            'niveau'          => [
+            'niveau' => [
                 'id'  => $s->getNiveau()?->getId(),
                 'nom' => $s->getNiveau()?->getNom(),
-            ],
+            'filiere' => [
+                'id'   => $s->getNiveau()?->getFiliere()?->getId(),
+                'nom'  => $s->getNiveau()?->getFiliere()?->getNom(),
+                'code' => $s->getNiveau()?->getFiliere()?->getCode(),
+                        ],
+                ],
             'anneeUniversitaire' => [
                 'id'      => $s->getAnneeUniversitaire()?->getId(),
                 'libelle' => $s->getAnneeUniversitaire()?->getLibelle(),

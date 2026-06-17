@@ -102,7 +102,7 @@ function SemestreBlock({ groupe }: { groupe: GroupeSemestre }) {
                       {n.code}
                     </span>
                   </td>
-                  <td style={{ ...S.td, fontWeight: 500 }}>{n.matiere}</td>
+                  <td style={{ ...S.td, fontWeight: 500 }}>{typeof n.matiere === 'object' ? (n.matiere as any).nom : n.matiere}</td>
                   <td style={{ ...S.td, color: '#6b7280' }}>{n.noteCc ?? '—'}</td>
                   <td style={{ ...S.td, color: '#6b7280' }}>{n.noteExamen ?? '—'}</td>
                   <td style={S.td}>
@@ -175,7 +175,7 @@ export default function MesNotes() {
   const groupes = useMemo<GroupeSemestre[]>(() => {
     const map: Record<string, Note[]> = {}
     notes.forEach(n => {
-      const key = n.semestre
+      const key = typeof n.semestre === 'object' ? (n.semestre as any).nom : n.semestre
       if (!map[key]) map[key] = []
       map[key].push(n)
     })
@@ -184,7 +184,9 @@ export default function MesNotes() {
       .sort((a, b) => b.semestre.localeCompare(a.semestre))
   }, [notes])
 
-  const semestres = [...new Set(notes.map(n => n.semestre))].sort().reverse()
+  const semestres = [...new Set(notes.map(n =>
+  typeof n.semestre === 'object' ? (n.semestre as any).nom : n.semestre
+))].sort().reverse()
 
   const filteredGroupes = useMemo(() =>
     filterSem ? groupes.filter(g => g.semestre === filterSem) : groupes,
@@ -226,7 +228,8 @@ export default function MesNotes() {
       <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <select style={S.select} value={filterSem} onChange={e => setFilterSem(e.target.value)}>
           <option value="">Tous les semestres</option>
-          {semestres.map(s => <option key={s}>{s}</option>)}
+          {semestres.map(s => <option key={s} value={s}>{s}</option>)}
+          
         </select>
       </div>
 

@@ -117,17 +117,32 @@ export default function Historique() {
         ))}
       </div>
 
-      {/* Filtres */}
+      {/* ── CORRECTION key prop ────────────────────────────────────────────────
+          Les <option> dans les deux <select> de filtre n'avaient pas de `key`.
+          On utilise `s` (nom du semestre) comme clé — les valeurs sont uniques
+          car produites par un Set. ─────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <select style={S.select} value={filterSem} onChange={e => { setFilterSem(e.target.value); setSelectedId(null) }}>
+        <select
+          style={S.select}
+          value={filterSem}
+          onChange={e => { setFilterSem(e.target.value); setSelectedId(null) }}
+        >
           <option value="">Tous les semestres</option>
-          {semestres.map(s => <option key={s}>{s}</option>)}
+          {semestres.map(s => (
+            <option key={s} value={s}>{s}</option>  
+          ))}
         </select>
-        <select style={S.select} value={filterStatut} onChange={e => { setFilterStatut(e.target.value); setSelectedId(null) }}>
+
+        <select
+          style={S.select}
+          value={filterStatut}
+          onChange={e => { setFilterStatut(e.target.value); setSelectedId(null) }}
+        >
           <option value="">Tous les statuts</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option key="active"   value="active">Active</option>    {/* ← key ajouté */}
+          <option key="inactive" value="inactive">Inactive</option>{/* ← key ajouté */}
         </select>
+
         <span style={{ fontSize: '13px', color: '#6b7280', alignSelf: 'center', marginLeft: 'auto' }}>
           {filteredMatieres.length} matière{filteredMatieres.length !== 1 ? 's' : ''}
         </span>
@@ -183,7 +198,12 @@ export default function Historique() {
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <input style={S.input} placeholder="Rechercher un étudiant…" value={searchNote} onChange={e => setSearchNote(e.target.value)} />
+              <input
+                style={S.input}
+                placeholder="Rechercher un étudiant…"
+                value={searchNote}
+                onChange={e => setSearchNote(e.target.value)}
+              />
             </div>
 
             {loadingNotes ? (

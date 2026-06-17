@@ -6,16 +6,9 @@ import { niveauService, type Niveau } from '../../api/services/niveauService'
 import { semestreService, type Semestre } from '../../api/services/semestreService'
 import { enseignantService, type Enseignant } from '../../api/services/enseignantService'
 
-// ─── Types form ───────────────────────────────────────────────────────────────
-
 interface MatiereForm {
-  code: string
-  nom: string
-  coefficient: string
-  filiereId: string
-  niveauId: string
-  semestreId: string
-  enseignantId: string
+  code: string; nom: string; coefficient: string
+  filiereId: string; niveauId: string; semestreId: string; enseignantId: string
 }
 
 const FORM_INIT: MatiereForm = {
@@ -23,61 +16,78 @@ const FORM_INIT: MatiereForm = {
   filiereId: '', niveauId: '', semestreId: '', enseignantId: '',
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-
 const ENI = { dark: '#064e3b', mid: '#065f46', light: '#047857' }
 
 const S = {
-  page:      { padding: '1.5rem', minHeight: '100vh', backgroundColor: '#f9fafb' } as React.CSSProperties,
-  card:      { backgroundColor: '#fff', borderRadius: '12px', border: '0.5px solid #e5e7eb', overflow: 'hidden' } as React.CSSProperties,
-  filters:   { display: 'flex', gap: '10px', marginBottom: '1rem', flexWrap: 'wrap' as const, alignItems: 'center' },
-  input:     { padding: '7px 12px', borderRadius: '8px', border: '0.5px solid #d1d5db', fontSize: '13px', backgroundColor: '#fff', color: '#111827', outline: 'none', minWidth: '160px' } as React.CSSProperties,
-  searchInput: { padding: '7px 12px', borderRadius: '8px', border: '0.5px solid #d1d5db', fontSize: '13px', backgroundColor: '#fff', color: '#111827', flex: 1, minWidth: '200px', outline: 'none' } as React.CSSProperties,
-  table:     { width: '100%', borderCollapse: 'collapse' as const, fontSize: '13px' },
-  th:        { padding: '10px 14px', textAlign: 'left' as const, fontWeight: 500, fontSize: '11px', color: '#6b7280', borderBottom: '0.5px solid #e5e7eb', backgroundColor: '#f9fafb', textTransform: 'uppercase' as const, letterSpacing: '0.04em' },
-  td:        { padding: '11px 14px', borderBottom: '0.5px solid #f3f4f6', color: '#111827', verticalAlign: 'middle' as const },
-  code:      { fontFamily: 'monospace', fontSize: '12px', color: '#6b7280', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' },
-  coef:      { fontWeight: 600, color: ENI.light, fontSize: '14px' },
-  count:     { fontSize: '13px', color: '#6b7280', marginLeft: 'auto' },
-  overlay:   { position: 'fixed' as const, inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
-  modal:     { backgroundColor: '#fff', borderRadius: '12px', border: '0.5px solid #e5e7eb', width: '100%', maxWidth: '500px', padding: '1.5rem', margin: '1rem' },
-  formGroup: { marginBottom: '1rem' },
-  label:     { display: 'block', fontSize: '13px', color: '#374151', marginBottom: '5px', fontWeight: 500 } as React.CSSProperties,
-  formInput: { width: '100%', padding: '8px 12px', borderRadius: '8px', border: '0.5px solid #d1d5db', fontSize: '14px', backgroundColor: '#fff', color: '#111827', outline: 'none', boxSizing: 'border-box' as const },
-  formRow:   { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
-  footer:    { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '1.5rem', borderTop: '0.5px solid #e5e7eb', paddingTop: '1.25rem' },
-  btnPrimary:{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', border: 'none', backgroundColor: ENI.light, color: '#fff' } as React.CSSProperties,
-  btnGhost:  { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', border: '0.5px solid #d1d5db', backgroundColor: 'transparent', color: '#374151' } as React.CSSProperties,
-  btnEdit:   { display: 'inline-flex', alignItems: 'center', padding: '5px 8px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', border: '0.5px solid #d1d5db', backgroundColor: 'transparent', color: '#374151' } as React.CSSProperties,
-  btnDel:    { display: 'inline-flex', alignItems: 'center', padding: '5px 8px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', border: 'none', backgroundColor: '#fee2e2', color: '#991b1b' } as React.CSSProperties,
-  actions:   { display: 'flex', gap: '6px', justifyContent: 'flex-end' },
-  badge:     (bg: string, color: string) => ({ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: '99px', fontSize: '11px', fontWeight: 600, backgroundColor: bg, color } as React.CSSProperties),
-  success:   { marginBottom: '1rem', padding: '10px 14px', borderRadius: '8px', backgroundColor: '#d1fae5', color: '#065f46', fontSize: '13px' },
-  errBox:    { marginBottom: '1rem', padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px' },
-  spinner:   { textAlign: 'center' as const, padding: '3rem', color: '#9ca3af', fontSize: '13px' },
-  empty:     { textAlign: 'center' as const, padding: '3rem 1rem', color: '#9ca3af' },
+  page:       { padding: '1.5rem', minHeight: '100vh', backgroundColor: '#f9fafb' } as React.CSSProperties,
+  card:       { backgroundColor: '#fff', borderRadius: '12px', border: '0.5px solid #e5e7eb', overflow: 'hidden' } as React.CSSProperties,
+  filters:    { display: 'flex', gap: '10px', marginBottom: '1rem', flexWrap: 'wrap' as const, alignItems: 'center' },
+  input:      { padding: '7px 12px', borderRadius: '8px', border: '0.5px solid #d1d5db', fontSize: '13px', backgroundColor: '#fff', color: '#111827', outline: 'none', minWidth: '160px' } as React.CSSProperties,
+  searchInput:{ padding: '7px 12px', borderRadius: '8px', border: '0.5px solid #d1d5db', fontSize: '13px', backgroundColor: '#fff', color: '#111827', flex: 1, minWidth: '200px', outline: 'none' } as React.CSSProperties,
+  table:      { width: '100%', borderCollapse: 'collapse' as const, fontSize: '13px' },
+  th:         { padding: '10px 14px', textAlign: 'left' as const, fontWeight: 500, fontSize: '11px', color: '#6b7280', borderBottom: '0.5px solid #e5e7eb', backgroundColor: '#f9fafb', textTransform: 'uppercase' as const, letterSpacing: '0.04em' },
+  td:         { padding: '11px 14px', borderBottom: '0.5px solid #f3f4f6', color: '#111827', verticalAlign: 'middle' as const },
+  code:       { fontFamily: 'monospace', fontSize: '12px', color: '#6b7280', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' },
+  coef:       { fontWeight: 600, color: ENI.light, fontSize: '14px' },
+  count:      { fontSize: '13px', color: '#6b7280', marginLeft: 'auto' },
+  overlay:    { position: 'fixed' as const, inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
+  modal:      { backgroundColor: '#fff', borderRadius: '12px', border: '0.5px solid #e5e7eb', width: '100%', maxWidth: '500px', padding: '1.5rem', margin: '1rem' },
+  formGroup:  { marginBottom: '1rem' },
+  label:      { display: 'block', fontSize: '13px', color: '#374151', marginBottom: '5px', fontWeight: 500 } as React.CSSProperties,
+  formInput:  { width: '100%', padding: '8px 12px', borderRadius: '8px', border: '0.5px solid #d1d5db', fontSize: '14px', backgroundColor: '#fff', color: '#111827', outline: 'none', boxSizing: 'border-box' as const },
+  formRow:    { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
+  footer:     { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '1.5rem', borderTop: '0.5px solid #e5e7eb', paddingTop: '1.25rem' },
+  btnPrimary: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', border: 'none', backgroundColor: ENI.light, color: '#fff' } as React.CSSProperties,
+  btnGhost:   { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', border: '0.5px solid #d1d5db', backgroundColor: 'transparent', color: '#374151' } as React.CSSProperties,
+  btnEdit:    { display: 'inline-flex', alignItems: 'center', padding: '5px 8px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', border: '0.5px solid #d1d5db', backgroundColor: 'transparent', color: '#374151' } as React.CSSProperties,
+  btnDel:     { display: 'inline-flex', alignItems: 'center', padding: '5px 8px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', border: 'none', backgroundColor: '#fee2e2', color: '#991b1b' } as React.CSSProperties,
+  actions:    { display: 'flex', gap: '6px', justifyContent: 'flex-end' },
+  badge:      (bg: string, color: string) => ({ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: '99px', fontSize: '11px', fontWeight: 600, backgroundColor: bg, color } as React.CSSProperties),
+  success:    { marginBottom: '1rem', padding: '10px 14px', borderRadius: '8px', backgroundColor: '#d1fae5', color: '#065f46', fontSize: '13px' },
+  errBox:     { marginBottom: '1rem', padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fee2e2', color: '#991b1b', fontSize: '13px' },
+  spinner:    { textAlign: 'center' as const, padding: '3rem', color: '#9ca3af', fontSize: '13px' },
+  empty:      { textAlign: 'center' as const, padding: '3rem 1rem', color: '#9ca3af' },
+  hint:       { fontSize: '11px', color: '#9ca3af', marginTop: '3px' } as React.CSSProperties,
 }
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 
 interface ModalProps {
-  form: MatiereForm
-  editId: number | null
-  error: string
-  loading: boolean
-  filieres: Filiere[]
-  niveaux: Niveau[]
-  semestres: Semestre[]
-  enseignants: Enseignant[]
-  onChange: (f: MatiereForm) => void
-  onSave: () => void
-  onClose: () => void
+  form: MatiereForm; editId: number | null; error: string; loading: boolean
+  filieres: Filiere[]; niveaux: Niveau[]; semestres: Semestre[]; enseignants: Enseignant[]
+  onChange: (f: MatiereForm) => void; onSave: () => void; onClose: () => void
 }
 
 function Modal({ form, editId, error, loading, filieres, niveaux, semestres, enseignants, onChange, onSave, onClose }: ModalProps) {
   const set = (k: keyof MatiereForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       onChange({ ...form, [k]: e.target.value })
+
+  // Niveaux filtrés selon la filière sélectionnée dans le formulaire
+  const niveauxFiltres = useMemo(() =>
+    form.filiereId
+      ? niveaux.filter(n => String(n.filiere?.id) === form.filiereId)
+      : niveaux,
+    [niveaux, form.filiereId]
+  )
+
+  // Semestres filtrés selon le niveau sélectionné dans le formulaire
+  const semestresFiltres = useMemo(() =>
+    form.niveauId
+      ? semestres.filter(s => String(s.niveau?.id) === form.niveauId)
+      : semestres,
+    [semestres, form.niveauId]
+  )
+
+  // Réinitialiser niveau et semestre quand filière change
+  const handleFiliereChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange({ ...form, filiereId: e.target.value, niveauId: '', semestreId: '' })
+  }
+
+  // Réinitialiser semestre quand niveau change
+  const handleNiveauChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    onChange({ ...form, niveauId: e.target.value, semestreId: '' })
+  }
 
   return (
     <div style={S.overlay} onClick={ev => ev.target === ev.currentTarget && onClose()}>
@@ -101,33 +111,46 @@ function Modal({ form, editId, error, loading, filieres, niveaux, semestres, ens
 
         <div style={S.formGroup}>
           <label style={S.label}>Nom de la matière *</label>
-          <input style={S.formInput} value={form.nom} onChange={set('nom')} placeholder="ex: Algorithmique" />
+          <input style={S.formInput} value={form.nom} onChange={set('nom')} placeholder="ex: Algorithmique et structures de données" />
         </div>
 
+        {/* Filière → Niveau → Semestre en cascade */}
         <div style={S.formRow}>
           <div style={S.formGroup}>
             <label style={S.label}>Filière</label>
-            <select style={S.formInput} value={form.filiereId} onChange={set('filiereId')}>
+            <select style={S.formInput} value={form.filiereId} onChange={handleFiliereChange}>
               <option value="">— Choisir —</option>
               {filieres.map(f => <option key={f.id} value={f.id}>{f.code} — {f.nom}</option>)}
             </select>
           </div>
           <div style={S.formGroup}>
             <label style={S.label}>Niveau</label>
-            <select style={S.formInput} value={form.niveauId} onChange={set('niveauId')}>
+            <select
+              style={{ ...S.formInput, opacity: !form.filiereId ? 0.6 : 1 }}
+              value={form.niveauId}
+              onChange={handleNiveauChange}
+              disabled={!form.filiereId}
+            >
               <option value="">— Choisir —</option>
-              {niveaux.map(n => <option key={n.id} value={n.id}>{n.nom}</option>)}
+              {niveauxFiltres.map(n => <option key={n.id} value={n.id}>{n.nom}</option>)}
             </select>
+            {!form.filiereId && <span style={S.hint}>Sélectionnez d'abord une filière</span>}
           </div>
         </div>
 
         <div style={S.formRow}>
           <div style={S.formGroup}>
             <label style={S.label}>Semestre</label>
-            <select style={S.formInput} value={form.semestreId} onChange={set('semestreId')}>
+            <select
+              style={{ ...S.formInput, opacity: !form.niveauId ? 0.6 : 1 }}
+              value={form.semestreId}
+              onChange={set('semestreId')}
+              disabled={!form.niveauId}
+            >
               <option value="">— Choisir —</option>
-              {semestres.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
+              {semestresFiltres.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
             </select>
+            {!form.niveauId && <span style={S.hint}>Sélectionnez d'abord un niveau</span>}
           </div>
           <div style={S.formGroup}>
             <label style={S.label}>Enseignant responsable</label>
@@ -151,7 +174,9 @@ function Modal({ form, editId, error, loading, filieres, niveaux, semestres, ens
 
 // ─── Confirm delete ───────────────────────────────────────────────────────────
 
-function ConfirmDelete({ nom, loading, onConfirm, onCancel }: { nom: string; loading: boolean; onConfirm: () => void; onCancel: () => void }) {
+function ConfirmDelete({ nom, loading, onConfirm, onCancel }: {
+  nom: string; loading: boolean; onConfirm: () => void; onCancel: () => void
+}) {
   return (
     <div style={S.overlay}>
       <div style={{ ...S.modal, maxWidth: '380px' }} role="dialog" aria-modal="true">
@@ -181,13 +206,13 @@ export default function Matieres() {
 
   const [search, setSearch]             = useState('')
   const [filterFil, setFilterFil]       = useState('')
+  const [filterNiv, setFilterNiv]       = useState('')
   const [filterSem, setFilterSem]       = useState('')
 
   const [showModal, setShowModal]       = useState(false)
   const [editId, setEditId]             = useState<number | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Matiere | null>(null)
   const [form, setForm]                 = useState<MatiereForm>(FORM_INIT)
-
   const [pageLoading, setPageLoading]   = useState(true)
   const [saving, setSaving]             = useState(false)
   const [deleting, setDeleting]         = useState(false)
@@ -197,11 +222,8 @@ export default function Matieres() {
 
   const showFlash = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(''), 3000) }
 
-  // ─── Chargement initial ──────────────────────────────────────────────────────
-
   const loadAll = useCallback(async () => {
-    setPageLoading(true)
-    setPageError('')
+    setPageLoading(true); setPageError('')
     try {
       const [m, f, n, s, e] = await Promise.all([
         matiereService.list(),
@@ -210,11 +232,7 @@ export default function Matieres() {
         semestreService.list(),
         enseignantService.list(),
       ])
-      setMatieres(m)
-      setFilieres(f)
-      setNiveaux(n)
-      setSemestres(s)
-      setEnseignants(e)
+      setMatieres(m); setFilieres(f); setNiveaux(n); setSemestres(s); setEnseignants(e)
     } catch {
       setPageError('Erreur de chargement. Vérifiez votre connexion au serveur.')
     } finally {
@@ -224,48 +242,76 @@ export default function Matieres() {
 
   useEffect(() => { loadAll() }, [loadAll])
 
-  // ─── Filtrage ────────────────────────────────────────────────────────────────
+  // ─── Niveaux et semestres dépendants des filtres sélectionnés ────────────────
+
+  const niveauxDuFiltre = useMemo(() =>
+    filterFil
+      ? niveaux.filter(n => String(n.filiere?.id) === filterFil)
+      : niveaux,
+    [niveaux, filterFil]
+  )
+
+  const semestresDuFiltre = useMemo(() =>
+    filterNiv
+      ? semestres.filter(s => String(s.niveau?.id) === filterNiv)
+      : filterFil
+        // Si filière choisie mais pas encore de niveau → semestres de cette filière
+        ? semestres.filter(s => String(s.niveau?.filiere?.id) === filterFil)
+        : semestres,
+    [semestres, filterFil, filterNiv]
+  )
+
+  // ─── Filtrage des matières ────────────────────────────────────────────────────
 
   const filtered = useMemo(() => matieres.filter(m => {
-    const q = search.toLowerCase()
-    const matchQ = !q || m.nom.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
-    const matchF = !filterFil || String(m.filiere?.id) === filterFil
-    const matchS = !filterSem || String(m.semestre?.id) === filterSem
-    return matchQ && matchF && matchS
-  }), [matieres, search, filterFil, filterSem])
+    const q      = search.toLowerCase()
+    const matchQ = !q       || m.nom.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
+    const matchF = !filterFil || String(m.semestre?.niveau?.filiere?.id) === filterFil
+    const matchN = !filterNiv || String(m.semestre?.niveau?.id)          === filterNiv
+    const matchS = !filterSem || String(m.semestre?.id)                  === filterSem
+    return matchQ && matchF && matchN && matchS
+  }), [matieres, search, filterFil, filterNiv, filterSem])
 
-  // ─── Modal ───────────────────────────────────────────────────────────────────
+  // ─── Réinitialiser les filtres dépendants ─────────────────────────────────────
 
-  const openCreate = () => {
-    setForm(FORM_INIT); setEditId(null); setFormError(''); setShowModal(true)
+  const handleFilterFil = (val: string) => {
+    setFilterFil(val)
+    setFilterNiv('')   // reset niveau
+    setFilterSem('')   // reset semestre
   }
+
+  const handleFilterNiv = (val: string) => {
+    setFilterNiv(val)
+    setFilterSem('')   // reset semestre
+  }
+
+  // ─── Modal ────────────────────────────────────────────────────────────────────
+
+  const openCreate = () => { setForm(FORM_INIT); setEditId(null); setFormError(''); setShowModal(true) }
 
   const openEdit = (m: Matiere) => {
     setForm({
       code:         m.code,
       nom:          m.nom,
       coefficient:  String(m.coefficient),
-      filiereId:    String(m.filiere?.id ?? ''),
-      niveauId:     String(m.niveau?.id ?? ''),
+      filiereId:    String(m.semestre?.niveau?.filiere?.id ?? ''),
+      niveauId:     String(m.semestre?.niveau?.id ?? ''),
       semestreId:   String(m.semestre?.id ?? ''),
       enseignantId: String(m.enseignant?.id ?? ''),
     })
     setEditId(m.id); setFormError(''); setShowModal(true)
   }
 
-  // ─── Save ────────────────────────────────────────────────────────────────────
+  // ─── Save ─────────────────────────────────────────────────────────────────────
 
   const handleSave = async () => {
     if (!form.code.trim() || !form.nom.trim()) {
       setFormError('Code et nom sont obligatoires.'); return
     }
     const coef = parseFloat(form.coefficient)
-    if (isNaN(coef) || coef <= 0) {
-      setFormError('Coefficient invalide.'); return
-    }
+    if (isNaN(coef) || coef <= 0) { setFormError('Coefficient invalide.'); return }
 
-    setSaving(true)
-    setFormError('')
+    setSaving(true); setFormError('')
     try {
       const payload = {
         code:         form.code.trim().toUpperCase(),
@@ -276,7 +322,6 @@ export default function Matieres() {
         semestreId:   form.semestreId   ? Number(form.semestreId)   : undefined,
         enseignantId: form.enseignantId ? Number(form.enseignantId) : undefined,
       }
-
       if (editId) {
         await matiereService.update(editId, payload)
         showFlash('Matière modifiée avec succès.')
@@ -284,35 +329,31 @@ export default function Matieres() {
         await matiereService.create(payload)
         showFlash('Matière créée avec succès.')
       }
-      setShowModal(false)
-      await loadAll()
+      setShowModal(false); await loadAll()
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } }
-      setFormError(e.response?.data?.message ?? 'Erreur lors de l\'enregistrement.')
+      setFormError(e.response?.data?.message ?? "Erreur lors de l'enregistrement.")
     } finally {
       setSaving(false)
     }
   }
 
-  // ─── Delete ──────────────────────────────────────────────────────────────────
+  // ─── Delete ───────────────────────────────────────────────────────────────────
 
   const handleDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
     try {
       await matiereService.delete(deleteTarget.id)
-      setDeleteTarget(null)
-      showFlash('Matière supprimée.')
-      await loadAll()
+      setDeleteTarget(null); showFlash('Matière supprimée.'); await loadAll()
     } catch {
-      setPageError('Erreur lors de la suppression.')
-      setDeleteTarget(null)
+      setPageError('Erreur lors de la suppression.'); setDeleteTarget(null)
     } finally {
       setDeleting(false)
     }
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
+  // ─── Render ───────────────────────────────────────────────────────────────────
 
   return (
     <div style={S.page}>
@@ -326,19 +367,64 @@ export default function Matieres() {
       </div>
 
       {flash    && <div style={S.success}>✓ {flash}</div>}
-      {pageError && <div style={S.errBox}>⚠ {pageError} <button onClick={loadAll} style={{ marginLeft: '8px', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#991b1b', fontSize: '13px' }}>Réessayer</button></div>}
+      {pageError && (
+        <div style={S.errBox}>
+          ⚠ {pageError}
+          <button onClick={loadAll} style={{ marginLeft: '8px', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#991b1b', fontSize: '13px' }}>
+            Réessayer
+          </button>
+        </div>
+      )}
 
-      {/* Filtres */}
+      {/* Filtres en cascade */}
       <div style={S.filters}>
-        <input style={S.searchInput} placeholder="Rechercher par nom ou code…" value={search} onChange={e => setSearch(e.target.value)} />
-        <select style={S.input} value={filterFil} onChange={e => setFilterFil(e.target.value)}>
+        <input
+          style={S.searchInput}
+          placeholder="Rechercher par nom ou code…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+
+        {/* Filière */}
+        <select style={S.input} value={filterFil} onChange={e => handleFilterFil(e.target.value)}>
           <option value="">Toutes les filières</option>
-          {filieres.map(f => <option key={f.id} value={f.id}>{f.code}</option>)}
+          {filieres.map(f => <option key={f.id} value={f.id}>{f.code} — {f.nom}</option>)}
         </select>
-        <select style={S.input} value={filterSem} onChange={e => setFilterSem(e.target.value)}>
+
+        {/* Niveau — dépend de la filière */}
+        <select
+          style={{ ...S.input, opacity: !filterFil ? 0.6 : 1 }}
+          value={filterNiv}
+          onChange={e => handleFilterNiv(e.target.value)}
+          disabled={!filterFil}
+          title={!filterFil ? 'Sélectionnez d\'abord une filière' : ''}
+        >
+          <option value="">Tous les niveaux</option>
+          {niveauxDuFiltre.map(n => <option key={n.id} value={n.id}>{n.nom}</option>)}
+        </select>
+
+        {/* Semestre — dépend du niveau (ou filière) */}
+        <select
+          style={{ ...S.input, opacity: !filterFil ? 0.6 : 1 }}
+          value={filterSem}
+          onChange={e => setFilterSem(e.target.value)}
+          disabled={!filterFil}
+          title={!filterFil ? 'Sélectionnez d\'abord une filière' : ''}
+        >
           <option value="">Tous les semestres</option>
-          {semestres.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
+          {semestresDuFiltre.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
         </select>
+
+        {/* Bouton reset */}
+        {(filterFil || filterNiv || filterSem || search) && (
+          <button
+            style={{ ...S.btnGhost, fontSize: '12px', padding: '6px 10px', color: '#9ca3af' }}
+            onClick={() => { setSearch(''); setFilterFil(''); setFilterNiv(''); setFilterSem('') }}
+          >
+            ✕ Réinitialiser
+          </button>
+        )}
+
         <span style={S.count}>{filtered.length} matière{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
@@ -349,8 +435,8 @@ export default function Matieres() {
         ) : filtered.length === 0 ? (
           <div style={S.empty}>
             <div style={{ fontSize: '32px', marginBottom: '8px' }}>📭</div>
-            <p>Aucune matière trouvée.</p>
-            <button style={{ ...S.btnPrimary, marginTop: '1rem' }} onClick={openCreate}>Créer une matière</button>
+            <p style={{ marginBottom: '1rem' }}>Aucune matière trouvée.</p>
+            <button style={S.btnPrimary} onClick={openCreate}>Créer une matière</button>
           </div>
         ) : (
           <table style={S.table}>
@@ -367,8 +453,10 @@ export default function Matieres() {
                   <td style={S.td}><span style={S.code}>{m.code}</span></td>
                   <td style={{ ...S.td, fontWeight: 500 }}>{m.nom}</td>
                   <td style={S.td}>
-                    {m.filiere && m.niveau
-                      ? <span style={S.badge('#ede9fe', '#4c1d95')}>{m.filiere.code} — {m.niveau.nom}</span>
+                    {m.semestre?.niveau?.filiere && m.semestre?.niveau
+                      ? <span style={S.badge('#ede9fe', '#4c1d95')}>
+                          {m.semestre.niveau.filiere.code} — {m.semestre.niveau.nom}
+                        </span>
                       : <span style={{ color: '#d1d5db' }}>—</span>}
                   </td>
                   <td style={S.td}>

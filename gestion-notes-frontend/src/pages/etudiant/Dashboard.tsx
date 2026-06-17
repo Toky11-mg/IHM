@@ -4,10 +4,38 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import api from '../../api/axios'
 
+// ─── Horloge isolée ───────────────────────────────────────────────────────────
+function Horloge({ filiere, niveau }: { filiere?: string; niveau?: string }) {
+  const [time, setTime] = useState(new Date())
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const fmtDate = (d: Date) =>
+    d.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+  const fmtTime = (d: Date) =>
+    d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+  return (
+    <div style={{ textAlign: 'right' }}>
+      <div style={{ fontSize: '28px', fontWeight: 700, color: '#065f46', fontFamily: 'monospace' }}>
+        {fmtTime(time)}
+      </div>
+      {filiere && niveau && (
+        <div style={{ fontSize: '12px', color: '#9ca3af' }}>{filiere} · {niveau}</div>
+      )}
+      <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px', textTransform: 'capitalize' }}>
+        {fmtDate(time)}
+      </div>
+    </div>
+  )
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Note {
-  id: number
+  id: string
   matiere: string
   code: string
   noteCc: string | null
@@ -50,19 +78,18 @@ interface EtudiantProfile {
 const ENI = '#065f46'
 
 const S: Record<string, React.CSSProperties> = {
-  page:    { padding: '1.5rem', minHeight: '100vh', backgroundColor: '#f9fafb', fontFamily: 'Inter, system-ui, sans-serif' },
-  card:    { backgroundColor: '#fff', borderRadius: '12px', border: '0.5px solid #e5e7eb', padding: '1.25rem' },
-  cardNp:  { backgroundColor: '#fff', borderRadius: '12px', border: '0.5px solid #e5e7eb', overflow: 'hidden' },
-  title:   { fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '1rem' },
-  skeleton:{ backgroundColor: '#f3f4f6', borderRadius: '8px', animation: 'pulse 1.5s infinite' },
+  page:     { padding: '1.5rem', minHeight: '100vh', backgroundColor: '#f9fafb', fontFamily: 'Inter, system-ui, sans-serif' },
+  card:     { backgroundColor: '#fff', borderRadius: '12px', border: '0.5px solid #e5e7eb', padding: '1.25rem' },
+  title:    { fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '1rem' },
+  skeleton: { backgroundColor: '#f3f4f6', borderRadius: '8px', animation: 'pulse 1.5s infinite' },
 }
 
 const MENTION_COLOR: Record<string, { color: string; bg: string }> = {
-  'Très Bien': { color: '#065f46', bg: '#d1fae5' },
-  'Bien':      { color: '#1e40af', bg: '#dbeafe' },
-  'Assez Bien':{ color: '#854d0e', bg: '#fef9c3' },
-  'Passable':  { color: '#374151', bg: '#f3f4f6' },
-  'Insuffisant':{ color: '#991b1b', bg: '#fee2e2' },
+  'A': { color: '#065f46', bg: '#d1fae5' },
+  'B': { color: '#1e40af', bg: '#dbeafe' },
+  'C': { color: '#854d0e', bg: '#fef9c3' },
+  'D': { color: '#374151', bg: '#f3f4f6' },
+  'F': { color: '#991b1b', bg: '#fee2e2' },
 }
 
 const QUICK = [
@@ -75,20 +102,12 @@ const QUICK = [
 
 export default function DashboardEtudiant() {
   const { user } = useAuth()
-  const navigate  = useNavigate()
+  const navigate = useNavigate()
 
   const [profile, setProfile] = useState<EtudiantProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
-  const [time, setTime]       = useState(new Date())
 
-  // Horloge
-  useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000)
-    return () => clearInterval(t)
-  }, [])
-
-  // Chargement profil
   useEffect(() => {
     const load = async () => {
       try {
@@ -103,44 +122,25 @@ export default function DashboardEtudiant() {
     load()
   }, [])
 
-  const fmtDate = (d: Date) =>
-    d.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
-
-  const fmtTime = (d: Date) =>
-    d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-
-  // Dernière délibération publiée
-  const lastDelib = profile?.deliberations.find(d => d.isPublie)
-
-  // Réclamations en attente
+  const lastDelib     = profile?.deliberations.find(d => d.isPublie)
   const reclamAttente = profile?.reclamations.filter(r => r.statut === 'en_attente').length ?? 0
-
-  const prenom = profile?.prenom ?? user?.prenom ?? '—'
+  const prenom        = profile?.prenom ?? user?.prenom ?? '—'
 
   return (
     <div style={S.page}>
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
+      {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Étudiant › Dashboard</div>
           <h1 style={{ fontSize: '22px', fontWeight: 500, color: '#111827', margin: 0 }}>
             Bonjour, {prenom} 👋
           </h1>
-          <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '2px', textTransform: 'capitalize' }}>
-            {fmtDate(time)}
-          </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '28px', fontWeight: 700, color: ENI, fontFamily: 'monospace' }}>
-            {fmtTime(time)}
-          </div>
-          {profile && (
-            <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-              {profile.filiere.nom} · {profile.niveau.nom}
-            </div>
-          )}
-        </div>
+        <Horloge
+          filiere={profile?.filiere.nom}
+          niveau={profile?.niveau.nom}
+        />
       </div>
 
       {error && (
@@ -149,12 +149,12 @@ export default function DashboardEtudiant() {
         </div>
       )}
 
-      {/* ── KPI ─────────────────────────────────────────────────────────── */}
+      {/* ── KPI ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '1.5rem' }}>
         {[
           {
             label: 'Notes enregistrées',
-            value: loading ? '…' : profile?.nbNotes ?? 0,
+            value: loading ? '…' : (profile?.nbNotes ?? 0),
             icon: '📝', color: '#1e40af', bg: '#dbeafe',
             sub: 'toutes matières',
           },
@@ -169,14 +169,15 @@ export default function DashboardEtudiant() {
             value: loading ? '…' : lastDelib ? lastDelib.decision : 'En cours',
             icon: lastDelib?.decision === 'Admis' ? '✅' : '📋',
             color: lastDelib?.decision === 'Admis' ? '#065f46' : '#854d0e',
-            bg: lastDelib?.decision === 'Admis' ? '#d1fae5' : '#fef9c3',
+            bg:    lastDelib?.decision === 'Admis' ? '#d1fae5' : '#fef9c3',
             sub: lastDelib?.mentionGlobale ?? 'résultats en attente',
           },
           {
             label: 'Réclamations',
-            value: loading ? '…' : profile?.nbReclamations ?? 0,
-            icon: '📩', color: reclamAttente > 0 ? '#991b1b' : '#374151',
-            bg: reclamAttente > 0 ? '#fee2e2' : '#f3f4f6',
+            value: loading ? '…' : (profile?.nbReclamations ?? 0),
+            icon: '📩',
+            color: reclamAttente > 0 ? '#991b1b' : '#374151',
+            bg:    reclamAttente > 0 ? '#fee2e2' : '#f3f4f6',
             sub: reclamAttente > 0 ? `${reclamAttente} en attente` : 'aucune en attente',
           },
         ].map(({ label, value, icon, color, bg, sub }) => (
@@ -191,17 +192,14 @@ export default function DashboardEtudiant() {
         ))}
       </div>
 
-      {/* ── 2 colonnes ──────────────────────────────────────────────────── */}
+      {/* ── 2 colonnes ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '1.5rem' }}>
 
-        {/* Mes dernières notes */}
+        {/* Dernières notes */}
         <div style={S.card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div style={S.title}>Mes dernières notes</div>
-            <button
-              onClick={() => navigate('/etudiant/mes-notes')}
-              style={{ fontSize: '12px', color: ENI, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
-            >
+            <button onClick={() => navigate('/etudiant/mes-notes')} style={{ fontSize: '12px', color: ENI, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
               Voir tout →
             </button>
           </div>
@@ -210,16 +208,17 @@ export default function DashboardEtudiant() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {[1, 2, 3].map(i => <div key={i} style={{ ...S.skeleton, height: '48px' }} />)}
             </div>
-          ) : profile?.notes.length === 0 ? (
+          ) : !profile?.notes.length ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af', fontSize: '13px' }}>
               <div style={{ fontSize: '28px', marginBottom: '8px' }}>📭</div>
               Aucune note disponible
-              <div style={{ fontSize: '12px', marginTop: '4px' }}>Les notes apparaîtront ici après saisie</div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {profile?.notes.slice(0, 5).map(n => {
-                const mc = n.mention ? (MENTION_COLOR[n.mention] ?? MENTION_COLOR['Passable']) : { color: '#9ca3af', bg: '#f3f4f6' }
+              {profile.notes.slice(0, 5).map(n => {
+                const mc = n.mention
+                  ? (MENTION_COLOR[n.mention] ?? { color: '#374151', bg: '#f3f4f6' })
+                  : { color: '#9ca3af', bg: '#f3f4f6' }
                 return (
                   <div key={n.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
                     <div>
@@ -248,8 +247,6 @@ export default function DashboardEtudiant() {
 
         {/* Accès rapides + Infos */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-          {/* Accès rapides */}
           <div style={S.card}>
             <div style={S.title}>Accès rapides</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -257,7 +254,7 @@ export default function DashboardEtudiant() {
                 <button
                   key={label}
                   onClick={() => navigate(path)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', border: '0.5px solid #e5e7eb', backgroundColor: '#fff', cursor: 'pointer', textAlign: 'left', transition: 'background .15s, border-color .15s' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '10px', border: '0.5px solid #e5e7eb', backgroundColor: '#fff', cursor: 'pointer', textAlign: 'left' }}
                   onMouseEnter={e => { e.currentTarget.style.backgroundColor = bg; e.currentTarget.style.borderColor = color }}
                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.borderColor = '#e5e7eb' }}
                 >
@@ -270,7 +267,6 @@ export default function DashboardEtudiant() {
             </div>
           </div>
 
-          {/* Infos académiques */}
           {profile && (
             <div style={S.card}>
               <div style={S.title}>Informations académiques</div>
@@ -292,12 +288,7 @@ export default function DashboardEtudiant() {
         </div>
       </div>
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
+      <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}</style>
     </div>
   )
 }

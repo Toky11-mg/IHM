@@ -163,7 +163,7 @@ const handleDownload = async () => {
       <div style={{ display: 'flex', gap: '10px', marginBottom: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <select style={S.select} value={filterAnnee} onChange={e => setFilterAnnee(e.target.value)}>
           <option value="">Toutes les années</option>
-          {annees.map(a => <option key={a}>{a}</option>)}
+          {annees.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
         <span style={{ fontSize: '13px', color: '#6b7280', marginLeft: 'auto' }}>
           {filtered.length} relevé{filtered.length !== 1 ? 's' : ''}
@@ -234,7 +234,7 @@ const handleDownload = async () => {
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#374151', marginBottom: '5px' }}>Année universitaire</label>
               <select style={S.formInput} value={annee} onChange={e => setAnnee(e.target.value)}>
-                {['2024-2025', '2023-2024', '2022-2023'].map(a => <option key={a}>{a}</option>)}
+                {['2024-2025', '2023-2024', '2022-2023'].map(a => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
 

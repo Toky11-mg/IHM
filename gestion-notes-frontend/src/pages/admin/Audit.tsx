@@ -185,7 +185,7 @@ export default function Audit() {
         </select>
         <select style={S.select} value={filterRole} onChange={e => { setFilterRole(e.target.value); resetPage() }}>
           <option value="">Tous les rôles</option>
-          {roles.map(r => <option key={r}>{r}</option>)}
+          {roles.map(r => <option key={String(r)} value={String(r)}>{String(r)}</option>)}
         </select>
         <input
           style={{ ...S.select, minWidth: '140px' }}
