@@ -7,8 +7,15 @@ export interface Etudiant {
   prenom: string
   nomComplet: string
   matricule: string
+  genre: string
   email: string
   statut: string
+  dateNaissance: string
+  age?: number
+  lieuNaissance?: string
+  nationalite: string
+  telephone?: string
+  photo?: string
   anneeEntree: number
   niveau: { id: number; nom: string }
   filiere: { id: number; nom: string }
@@ -20,11 +27,15 @@ export interface EtudiantPayload {
   nom: string
   prenom: string
   email: string
-  matricule: string
+  dateNaissance: string
+  lieuNaissance: string
+  nationalite: string
+  genre: string
   niveauId?: number
   filiereId?: number
   anneeEntree?: number
   statut?: string
+  telephone?: string
   password?: string
 }
 

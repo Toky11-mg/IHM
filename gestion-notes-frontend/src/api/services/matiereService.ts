@@ -6,24 +6,31 @@ export interface Matiere {
   id: number
   code: string
   nom: string
+  credit: number
+  type: string
   coefficient: number
-  credit : number
-  type : string
-  filiere?: { id: number; nom: string; code: string }
-  niveau?: { id: number; nom: string }
-  semestre?: { id: number; nom: string }
+  semestre?: {
+    id: number
+    nom: string
+    niveau?: {
+      id: number
+      nom: string
+      filiere?: { id: number; nom: string; code: string }
+    }
+  }
   enseignant?: { id: number; nomComplet: string }
 }
 
 export interface MatierePayload {
   code: string
   nom: string
+  credit: number
+  type: string
   coefficient: number
-  filiereId?: number
-  niveauId?: number
   semestreId?: number
   enseignantId?: number
 }
+
 
 export const matiereService = {
   list: (params?: Record<string, string | number>) =>

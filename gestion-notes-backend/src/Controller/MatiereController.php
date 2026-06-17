@@ -350,53 +350,63 @@ class MatiereController extends AbstractController
     // =====================
 
     private function serialize(Matiere $m): array
-    {
-        $niveau  = $m->getSemestre()?->getNiveau();
-        $filiere = $niveau?->getFiliere();
+{
+    $niveau  = $m->getSemestre()?->getNiveau();
+    $filiere = $niveau?->getFiliere();
 
-        return [
-            'id'          => $m->getId(),
-            'nom'         => $m->getNom(),
-            'code'        => $m->getCode(),
-            'credit'      => $m->getCredit(),
-            'coefficient' => $m->getCoefficient(),
-            'type'        => $m->getType(),
-            'noteCcPoids' => $m->getNoteCcPoids(),
-            'noteExPoids' => $m->getNoteExPoids(),
-            'isActive'    => $m->isActive(),
-            'semestre' => [
-                'id'  => $m->getSemestre()?->getId(),
-                'nom' => $m->getSemestre()?->getNom(),
-            ],
-            'enseignant' => $m->getEnseignant() ? [
-                'id'        => $m->getEnseignant()->getId(),
-                'nomComplet' => $m->getEnseignant()->getNomComplet(),
-                'matricule' => $m->getEnseignant()->getMatricule(),
-            ] : null,
-        ];
-    }
-
-    private function serializeDetail(Matiere $m): array
-    {
-        return array_merge($this->serialize($m), [
-            'libelleComplet' => $m->getLibelleComplet(),
-            'nbNotes'        => $m->getNotes()->count(),
-            'semestre'       => [
-                'id'        => $m->getSemestre()?->getId(),
-                'nom'       => $m->getSemestre()?->getNom(),
-                'isCloture' => $m->getSemestre()?->isCloture(),
-                'annee'     => $m->getSemestre()?->getAnneeUniversitaire()?->getLibelle(),
-                'niveau'    => [
-                    'id'     => $m->getSemestre()?->getNiveau()?->getId(),
-                    'nom'    => $m->getSemestre()?->getNiveau()?->getNom(),
-                    'filiere' => [
-                        'id'  => $m->getSemestre()?->getNiveau()?->getFiliere()?->getId(),
-                        'nom' => $m->getSemestre()?->getNiveau()?->getFiliere()?->getNom(),
-                    ],
+    return [
+        'id'          => $m->getId(),
+        'nom'         => $m->getNom(),
+        'code'        => $m->getCode(),
+        'credit'      => $m->getCredit(),
+        'coefficient' => $m->getCoefficient(),
+        'type'        => $m->getType(),
+        'noteCcPoids' => $m->getNoteCcPoids(),
+        'noteExPoids' => $m->getNoteExPoids(),
+        'isActive'    => $m->isActive(),
+        'semestre' => [
+            'id'     => $m->getSemestre()?->getId(),
+            'nom'    => $m->getSemestre()?->getNom(),
+            'niveau' => [
+                'id'      => $niveau?->getId(),
+                'nom'     => $niveau?->getNom(),
+                'filiere' => [
+                    'id'   => $filiere?->getId(),
+                    'nom'  => $filiere?->getNom(),
+                    'code' => $filiere?->getCode(),
                 ],
             ],
-        ]);
-    }
+        ],
+        'enseignant' => $m->getEnseignant() ? [
+            'id'        => $m->getEnseignant()->getId(),
+            'nomComplet' => $m->getEnseignant()->getNomComplet(),
+            'matricule' => $m->getEnseignant()->getMatricule(),
+        ] : null,
+    ];
+}
+
+    private function serializeDetail(Matiere $m): array
+{
+    return array_merge($this->serialize($m), [
+        'libelleComplet' => $m->getLibelleComplet(),
+        'nbNotes'        => $m->getNotes()->count(),
+        'semestre'       => [
+            'id'        => $m->getSemestre()?->getId(),
+            'nom'       => $m->getSemestre()?->getNom(),
+            'isCloture' => $m->getSemestre()?->isCloture(),
+            'annee'     => $m->getSemestre()?->getAnneeUniversitaire()?->getLibelle(),
+            'niveau'    => [
+                'id'     => $m->getSemestre()?->getNiveau()?->getId(),
+                'nom'    => $m->getSemestre()?->getNiveau()?->getNom(),
+                'filiere' => [
+                    'id'   => $m->getSemestre()?->getNiveau()?->getFiliere()?->getId(),
+                    'nom'  => $m->getSemestre()?->getNiveau()?->getFiliere()?->getNom(),
+                    'code' => $m->getSemestre()?->getNiveau()?->getFiliere()?->getCode(),
+                ],
+            ],
+        ],
+    ]);
+}
 
     // =====================
     // MÉTHODES PRIVÉES

@@ -1,16 +1,16 @@
 // src/pages/admin/Matieres.tsx
 import { useState, useMemo, useEffect, useCallback } from 'react'
-import { matiereService, type Matiere } from '../../api/services/matiereService'
+import { matiereService, type Matiere, type MatierePayload } from '../../api/services/matiereService'
 import { filiereService, type Filiere } from '../../api/services/filiereService'
 import { niveauService, type Niveau } from '../../api/services/niveauService'
 import { semestreService, type Semestre } from '../../api/services/semestreService'
 import { enseignantService, type Enseignant } from '../../api/services/enseignantService'
 
-// ─── Types form ───────────────────────────────────────────────────────────────
-
 interface MatiereForm {
   code: string
   nom: string
+  credit: string
+  type: string
   coefficient: string
   filiereId: string
   niveauId: string
@@ -20,7 +20,7 @@ interface MatiereForm {
 
 const FORM_INIT: MatiereForm = {
   code: '', nom: '', credit: '3', type: 'cours', coefficient: '1',
-  semestreId: '', enseignantId: '',
+  filiereId: '', niveauId: '', semestreId: '', enseignantId: '',
 }
 
 const ENI = { dark: '#064e3b', mid: '#065f46', light: '#047857' }
@@ -57,8 +57,6 @@ const S = {
   hint:       { fontSize: '11px', color: '#9ca3af', marginTop: '3px' } as React.CSSProperties,
 }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
-
 interface ModalProps {
   form: MatiereForm
   editId: number | null
@@ -73,12 +71,11 @@ interface ModalProps {
   onClose: () => void
 }
 
-function Modal({ form, editId, error, loading, semestres, enseignants, onChange, onSave, onClose }: ModalProps) {
+function Modal({ form, editId, error, loading, filieres, niveaux, semestres, enseignants, onChange, onSave, onClose }: ModalProps) {
   const set = (k: keyof MatiereForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       onChange({ ...form, [k]: e.target.value })
 
-  // Niveaux filtrés selon la filière sélectionnée dans le formulaire
   const niveauxFiltres = useMemo(() =>
     form.filiereId
       ? niveaux.filter(n => String(n.filiere?.id) === form.filiereId)
@@ -86,7 +83,6 @@ function Modal({ form, editId, error, loading, semestres, enseignants, onChange,
     [niveaux, form.filiereId]
   )
 
-  // Semestres filtrés selon le niveau sélectionné dans le formulaire
   const semestresFiltres = useMemo(() =>
     form.niveauId
       ? semestres.filter(s => String(s.niveau?.id) === form.niveauId)
@@ -94,12 +90,10 @@ function Modal({ form, editId, error, loading, semestres, enseignants, onChange,
     [semestres, form.niveauId]
   )
 
-  // Réinitialiser niveau et semestre quand filière change
   const handleFiliereChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onChange({ ...form, filiereId: e.target.value, niveauId: '', semestreId: '' })
   }
 
-  // Réinitialiser semestre quand niveau change
   const handleNiveauChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     onChange({ ...form, niveauId: e.target.value, semestreId: '' })
   }
@@ -123,26 +117,39 @@ function Modal({ form, editId, error, loading, semestres, enseignants, onChange,
             <input style={S.formInput} type="number" value={form.coefficient} onChange={set('coefficient')} min="0.5" max="10" step="0.5" />
           </div>
         </div>
+        <div style={S.formRow}>
+          <div style={S.formGroup}>
+            <label style={S.label}>Crédit *</label>
+            <input style={S.formInput} type="number" value={form.credit} onChange={set('credit')} min="1" />
+          </div>
+          <div style={S.formGroup}>
+            <label style={S.label}>Type *</label>
+            <select style={S.formInput} value={form.type} onChange={set('type')}>
+              <option value="cours">Cours</option>
+              <option value="td">TD</option>
+              <option value="tp">TP</option>
+            </select>
+          </div>
+        </div>
 
         <div style={S.formGroup}>
           <label style={S.label}>Nom de la matière *</label>
           <input style={S.formInput} value={form.nom} onChange={set('nom')} placeholder="ex: Algorithmique et structures de données" />
         </div>
 
-        {/* Filière → Niveau → Semestre en cascade */}
         <div style={S.formRow}>
           <div style={S.formGroup}>
             <label style={S.label}>Filière</label>
-            <select style={S.formInput} value={form.filiereId} onChange={set('filiereId')}>
+            <select style={S.formInput} value={form.filiereId} onChange={handleFiliereChange}>
               <option value="">— Choisir —</option>
               {filieres.map(f => <option key={f.id} value={f.id}>{f.code} — {f.nom}</option>)}
             </select>
           </div>
           <div style={S.formGroup}>
             <label style={S.label}>Niveau</label>
-            <select style={S.formInput} value={form.niveauId} onChange={set('niveauId')}>
+            <select style={S.formInput} value={form.niveauId} onChange={handleNiveauChange} disabled={!form.filiereId}>
               <option value="">— Choisir —</option>
-              {niveaux.map(n => <option key={n.id} value={n.id}>{n.nom}</option>)}
+              {niveauxFiltres.map(n => <option key={n.id} value={n.id}>{n.nom}</option>)}
             </select>
             {!form.filiereId && <span style={S.hint}>Sélectionnez d'abord une filière</span>}
           </div>
@@ -150,11 +157,12 @@ function Modal({ form, editId, error, loading, semestres, enseignants, onChange,
 
         <div style={S.formRow}>
           <div style={S.formGroup}>
-            <label style={S.label}>Semestre</label>
-            <select style={S.formInput} value={form.semestreId} onChange={set('semestreId')}>
+            <label style={S.label}>Semestre *</label>
+            <select style={S.formInput} value={form.semestreId} onChange={set('semestreId')} disabled={!form.niveauId}>
               <option value="">— Choisir —</option>
-              {semestres.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
+              {semestresFiltres.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
             </select>
+            {!form.niveauId && <span style={S.hint}>Sélectionnez d'abord un niveau</span>}
           </div>
           <div style={S.formGroup}>
             <label style={S.label}>Enseignant responsable</label>
@@ -176,8 +184,6 @@ function Modal({ form, editId, error, loading, semestres, enseignants, onChange,
   )
 }
 
-// ─── Confirm delete ───────────────────────────────────────────────────────────
-
 function ConfirmDelete({ nom, loading, onConfirm, onCancel }: {
   nom: string; loading: boolean; onConfirm: () => void; onCancel: () => void
 }) {
@@ -198,8 +204,6 @@ function ConfirmDelete({ nom, loading, onConfirm, onCancel }: {
     </div>
   )
 }
-
-// ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function Matieres() {
   const [matieres, setMatieres]         = useState<Matiere[]>([])
@@ -246,36 +250,52 @@ export default function Matieres() {
 
   useEffect(() => { loadAll() }, [loadAll])
 
-  // ─── Filtrage ────────────────────────────────────────────────────────────────
+  const niveauxDuFiltre = useMemo(() =>
+    filterFil ? niveaux.filter(n => String(n.filiere?.id) === filterFil) : niveaux,
+    [niveaux, filterFil]
+  )
+
+  const semestresDuFiltre = useMemo(() => {
+    if (filterNiv) return semestres.filter(s => String(s.niveau?.id) === filterNiv)
+    if (filterFil) return semestres.filter(s => String(s.niveau?.filiere?.id) === filterFil)
+    return semestres
+  }, [semestres, filterFil, filterNiv])
+
+  const handleFilterFil = (value: string) => {
+    setFilterFil(value); setFilterNiv(''); setFilterSem('')
+  }
+
+  const handleFilterNiv = (value: string) => {
+    setFilterNiv(value); setFilterSem('')
+  }
 
   const filtered = useMemo(() => matieres.filter(m => {
     const q = search.toLowerCase()
     const matchQ = !q || m.nom.toLowerCase().includes(q) || m.code.toLowerCase().includes(q)
-    const matchF = !filterFil || String(m.filiere?.id) === filterFil
+    const filiereId = m.filiere?.id ?? m.semestre?.niveau?.filiere?.id
+    const niveauId  = m.niveau?.id ?? m.semestre?.niveau?.id
+    const matchF = !filterFil || String(filiereId) === filterFil
+    const matchN = !filterNiv || String(niveauId) === filterNiv
     const matchS = !filterSem || String(m.semestre?.id) === filterSem
-    return matchQ && matchF && matchS
-  }), [matieres, search, filterFil, filterSem])
-
-  // ─── Modal ────────────────────────────────────────────────────────────────────
+    return matchQ && matchF && matchN && matchS
+  }), [matieres, search, filterFil, filterNiv, filterSem])
 
   const openCreate = () => { setForm(FORM_INIT); setEditId(null); setFormError(''); setShowModal(true) }
 
   const openEdit = (m: Matiere) => {
-    setForm({
-      code:         m.code,
-      nom:          m.nom,
-      credit:       String(m.credit ?? 3),
-      type:         m.type ?? 'cours',
-      coefficient:  String(m.coefficient),
-      filiereId:    String(m.filiere?.id ?? ''),
-      niveauId:     String(m.niveau?.id ?? ''),
-      semestreId:   String(m.semestre?.id ?? ''),
-      enseignantId: String(m.enseignant?.id ?? ''),
-    })
-    setEditId(m.id); setFormError(''); setShowModal(true)
-  }
-
-  // ─── Save ─────────────────────────────────────────────────────────────────────
+  setForm({
+    code:         m.code,
+    nom:          m.nom,
+    credit:       String(m.credit ?? 3),
+    type:         m.type ?? 'cours',
+    coefficient:  String(m.coefficient),
+    filiereId:    String(m.semestre?.niveau?.filiere?.id ?? ''),
+    niveauId:     String(m.semestre?.niveau?.id ?? ''),
+    semestreId:   String(m.semestre?.id ?? ''),
+    enseignantId: String(m.enseignant?.id ?? ''),
+  })
+  setEditId(m.id); setFormError(''); setShowModal(true)
+}
 
   const handleSave = async () => {
     if (!form.code.trim() || !form.nom.trim()) {
@@ -291,10 +311,10 @@ export default function Matieres() {
 
     setSaving(true); setFormError('')
     try {
-      const payload = {
+     const payload: MatierePayload = {
         code:         form.code.trim().toUpperCase(),
         nom:          form.nom.trim(),
-        credit,
+        credit:       Number(form.credit),
         type:         form.type,
         coefficient:  coef,
         semestreId:   Number(form.semestreId),
@@ -316,8 +336,6 @@ export default function Matieres() {
     }
   }
 
-  // ─── Delete ───────────────────────────────────────────────────────────────────
-
   const handleDelete = async () => {
     if (!deleteTarget) return
     setDeleting(true)
@@ -331,11 +349,8 @@ export default function Matieres() {
     }
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
-
   return (
     <div style={S.page}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Administration › Matières</div>
@@ -354,7 +369,6 @@ export default function Matieres() {
         </div>
       )}
 
-      {/* Filtres en cascade */}
       <div style={S.filters}>
         <input
           style={S.searchInput}
@@ -363,13 +377,11 @@ export default function Matieres() {
           onChange={e => setSearch(e.target.value)}
         />
 
-        {/* Filière */}
         <select style={S.input} value={filterFil} onChange={e => handleFilterFil(e.target.value)}>
           <option value="">Toutes les filières</option>
           {filieres.map(f => <option key={f.id} value={f.id}>{f.code} — {f.nom}</option>)}
         </select>
 
-        {/* Niveau — dépend de la filière */}
         <select
           style={{ ...S.input, opacity: !filterFil ? 0.6 : 1 }}
           value={filterNiv}
@@ -381,7 +393,6 @@ export default function Matieres() {
           {niveauxDuFiltre.map(n => <option key={n.id} value={n.id}>{n.nom}</option>)}
         </select>
 
-        {/* Semestre — dépend du niveau (ou filière) */}
         <select
           style={{ ...S.input, opacity: !filterFil ? 0.6 : 1 }}
           value={filterSem}
@@ -393,7 +404,6 @@ export default function Matieres() {
           {semestresDuFiltre.map(s => <option key={s.id} value={s.id}>{s.nom}</option>)}
         </select>
 
-        {/* Bouton reset */}
         {(filterFil || filterNiv || filterSem || search) && (
           <button
             style={{ ...S.btnGhost, fontSize: '12px', padding: '6px 10px', color: '#9ca3af' }}
@@ -406,7 +416,6 @@ export default function Matieres() {
         <span style={S.count}>{filtered.length} matière{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
-      {/* Tableau */}
       <div style={S.card}>
         {pageLoading ? (
           <div style={S.spinner}>⏳ Chargement…</div>
@@ -460,7 +469,7 @@ export default function Matieres() {
       {showModal && (
         <Modal
           form={form} editId={editId} error={formError} loading={saving}
-          semestres={semestres} enseignants={enseignants}
+          filieres={filieres} niveaux={niveaux} semestres={semestres} enseignants={enseignants}
           onChange={setForm} onSave={handleSave} onClose={() => setShowModal(false)}
         />
       )}

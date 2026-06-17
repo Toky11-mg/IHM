@@ -5,14 +5,18 @@ import { filiereService, type Filiere } from '../../api/services/filiereService'
 import { niveauService, type Niveau } from '../../api/services/niveauService'
 
 interface EtudiantForm {
-  nom: string; prenom: string; email: string; matricule: string
+  nom: string; prenom: string; email: string
   niveauId: string; filiereId: string; anneeEntree: string
+  dateNaissance: string; lieuNaissance: string; nationalite: string
+  genre: string
   statut: string; password: string
 }
 
 const FORM_INIT: EtudiantForm = {
-  nom: '', prenom: '', email: '', matricule: '',
+  nom: '', prenom: '', email: '',
   niveauId: '', filiereId: '', anneeEntree: String(new Date().getFullYear()),
+  dateNaissance: '', lieuNaissance: '', nationalite: 'Malgache',
+  genre: '',
   statut: 'actif', password: '',
 }
 
@@ -95,47 +99,80 @@ export default function Etudiants() {
       setForm(f => ({ ...f, [k]: ev.target.value }))
 
   const openCreate = () => { setForm(FORM_INIT); setEditId(null); setFormError(''); setShowModal(true) }
-  const openEdit   = (e: Etudiant) => {
-    setForm({
-      nom: e.nom, prenom: e.prenom, email: e.email, matricule: e.matricule,
-      niveauId: String(e.niveau?.id ?? ''), filiereId: String(e.filiere?.id ?? ''),
-      anneeEntree: String(e.anneeEntree ?? ''), statut: e.statut ?? 'actif', password: '',
-    })
-    setEditId(e.id); setFormError(''); setShowModal(true)
-  }
+  const openEdit = (e: Etudiant) => {
+  setForm({
+    nom: e.nom, prenom: e.prenom, email: e.email,
+    niveauId: String(e.niveau?.id ?? ''), filiereId: String(e.filiere?.id ?? ''),
+    anneeEntree: String(e.anneeEntree ?? ''),
+    dateNaissance: e.dateNaissance ?? '', lieuNaissance: e.lieuNaissance ?? '',
+    nationalite: e.nationalite ?? '',
+    genre: e.genre ?? '',
+    statut: e.statut ?? 'actif', password: '',
+  })
+  setEditId(e.id); setFormError(''); setShowModal(true)
+}
 
-  const handleSave = async () => {
-    if (!form.nom.trim() || !form.prenom.trim() || !form.email.trim() || !form.matricule.trim()) {
-      setFormError('Nom, prénom, email et matricule sont obligatoires.'); return
+ const PASSWORD_RULES = [
+  { test: (p: string) => p.length >= 8, label: 'Minimum 8 caractères' },
+  { test: (p: string) => /[A-Z]/.test(p), label: 'Au moins une majuscule' },
+  { test: (p: string) => /[0-9]/.test(p), label: 'Au moins un chiffre' },
+  { test: (p: string) => /[\W_]/.test(p), label: 'Au moins un caractère spécial' },
+]
+
+const handleSave = async () => {
+  if (!form.nom.trim() || !form.prenom.trim() || !form.email.trim()) {
+    setFormError('Nom, prénom et email sont obligatoires.'); return
+  }
+  if (!form.dateNaissance.trim() || !form.lieuNaissance.trim() || !form.nationalite.trim()) {
+    setFormError('Date de naissance, lieu de naissance et nationalité sont obligatoires.'); return
+  }
+  if (!form.genre.trim()) {
+    setFormError('Le genre est obligatoire.'); return
+  }
+  if (!editId) {
+    if (!form.niveauId || !form.filiereId) {
+      setFormError('Niveau et filière sont obligatoires pour un nouvel étudiant.'); return
     }
-    if (!editId && !form.password.trim()) {
+    if (!form.password.trim()) {
       setFormError('Le mot de passe est obligatoire pour un nouvel étudiant.'); return
     }
-    setSaving(true); setFormError('')
-    try {
-      const payload: EtudiantPayload = {
-        nom: form.nom, prenom: form.prenom, email: form.email, matricule: form.matricule,
-        niveauId:    form.niveauId    ? Number(form.niveauId)    : undefined,
-        filiereId:   form.filiereId   ? Number(form.filiereId)   : undefined,
-        anneeEntree: form.anneeEntree ? Number(form.anneeEntree) : undefined,
-        statut:      form.statut,
-        password:    form.password || undefined,
-      }
-      if (editId) {
-        await etudiantService.update(editId, payload)
-        showFlash('Étudiant modifié.')
-      } else {
-        await etudiantService.create(payload)
-        showFlash('Étudiant créé.')
-      }
-      setShowModal(false); await load()
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } }
-      setFormError(e.response?.data?.message ?? 'Erreur lors de l\'enregistrement.')
-    } finally {
-      setSaving(false)
+    const failedRule = PASSWORD_RULES.find(r => !r.test(form.password))
+    if (failedRule) {
+      setFormError(`Mot de passe invalide : ${failedRule.label}.`); return
     }
   }
+
+  setSaving(true); setFormError('')
+  try {
+    const payload: EtudiantPayload = {
+      nom: form.nom, prenom: form.prenom, email: form.email,
+      dateNaissance: form.dateNaissance,
+      lieuNaissance: form.lieuNaissance,
+      nationalite: form.nationalite,
+      genre: form.genre,
+      niveauId:    form.niveauId    ? Number(form.niveauId)    : undefined,
+      filiereId:   form.filiereId   ? Number(form.filiereId)   : undefined,
+      anneeEntree: form.anneeEntree ? Number(form.anneeEntree) : undefined,
+      statut:      form.statut,
+      password:    form.password || undefined,
+    }
+    if (editId) {
+      await etudiantService.update(editId, payload)
+      showFlash('Étudiant modifié.')
+    } else {
+      await etudiantService.create(payload)
+      showFlash('Étudiant créé.')
+    }
+    setShowModal(false); await load()
+  } catch (err: unknown) {
+    const e = err as { response?: { data?: { message?: string; errors?: Record<string, string> } } }
+    const data = e.response?.data
+    const detail = data?.errors ? Object.values(data.errors).join(' ') : ''
+    setFormError([data?.message, detail].filter(Boolean).join(' ') || 'Erreur lors de l\'enregistrement.')
+  } finally {
+    setSaving(false)
+  }
+}
 
   const handleDelete = async () => {
     if (!deleteTarget) return
@@ -273,10 +310,7 @@ export default function Etudiants() {
                 <label style={S.label}>Email *</label>
                 <input style={S.formInput} type="email" value={form.email} onChange={set('email')} placeholder="jean@eni.mg" />
               </div>
-              <div style={S.formGroup}>
-                <label style={S.label}>Matricule *</label>
-                <input style={S.formInput} value={form.matricule} onChange={set('matricule')} placeholder="ETU001" />
-              </div>
+              
             </div>
             <div style={S.formRow}>
               <div style={S.formGroup}>
@@ -307,17 +341,52 @@ export default function Etudiants() {
                 </select>
               </div>
             </div>
-            <div style={S.formGroup}>
-              <label style={S.label}>{editId ? 'Nouveau mot de passe (laisser vide = inchangé)' : 'Mot de passe *'}</label>
-              <input style={S.formInput} type="password" value={form.password} onChange={set('password')} placeholder="••••••••" />
-            </div>
 
-            <div style={S.footer}>
-              <button style={S.btnGhost} onClick={() => setShowModal(false)} disabled={saving}>Annuler</button>
-              <button style={{ ...S.btnPrimary, opacity: saving ? 0.7 : 1 }} onClick={handleSave} disabled={saving}>
-                {saving ? '⏳…' : '✓ Enregistrer'}
-              </button>
-            </div>
+            <div style={S.formRow}>
+  <div style={S.formGroup}>
+    <label style={S.label}>Lieu de naissance *</label>
+    <input style={S.formInput} value={form.lieuNaissance} onChange={set('lieuNaissance')} placeholder="Antananarivo" />
+  </div>
+  <div style={S.formGroup}>
+    <label style={S.label}>Nationalité *</label>
+    <input style={S.formInput} value={form.nationalite} onChange={set('nationalite')} placeholder="Malgache" />
+  </div>
+</div>
+
+<div style={S.formRow}>
+  <div style={S.formGroup}>
+    <label style={S.label}>Date de naissance *</label>
+    <input style={S.formInput} type="date" value={form.dateNaissance} onChange={set('dateNaissance')} />
+  </div>
+  <div style={S.formGroup}>
+    <label style={S.label}>Genre *</label>
+    <select style={S.formInput} value={form.genre} onChange={set('genre')}>
+      <option value="">— Choisir —</option>
+      <option value="M">Masculin</option>
+      <option value="F">Féminin</option>
+    </select>
+  </div>
+</div>
+
+<div style={S.formGroup}>
+  <label style={S.label}>{editId ? 'Nouveau mot de passe (laisser vide = inchangé)' : 'Mot de passe *'}</label>
+  <input style={S.formInput} type="password" value={form.password} onChange={set('password')} placeholder="••••••••" />
+  {!editId && (
+    <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
+      Min. 8 caractères, 1 majuscule, 1 chiffre, 1 caractère spécial.
+    </p>
+  )}
+</div>
+
+<div style={S.footer}>
+  <button style={S.btnGhost} onClick={() => setShowModal(false)} disabled={saving}>Annuler</button>
+  <button style={{ ...S.btnPrimary, opacity: saving ? 0.7 : 1 }} onClick={handleSave} disabled={saving}>
+    {saving ? '⏳…' : '✓ Enregistrer'}
+  </button>
+</div>
+            
+
+            
           </div>
         </div>
       )}
